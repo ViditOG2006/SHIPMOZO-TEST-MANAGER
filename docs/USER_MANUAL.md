@@ -45,7 +45,21 @@ No login is required in v1.0. The platform opens directly to the Dashboard.
 
 On first access (when Firestore is empty), you'll see a **"First-Run Setup"** modal. Click **"Seed Data to Firestore"** to populate the platform with sample modules, test cases, datasets, workflows, and environments. This only needs to be done once — all subsequent visits will load data from the cloud.
 
-### 1.3 Switching Roles
+### 1.3 Required Credentials & Environment Setup
+
+To enable real API and UI test execution, the following environment keys must be configured on the hosting server (Render Web Service):
+
+| Purpose | Variable | Description |
+|---------|----------|-------------|
+| **LLM (Claude)** | `ANTHROPIC_API_KEY` | Used to orchestrate test runs and self-heal failed UI steps |
+| **Postman API** | `POSTMAN_API_KEY` | PMAK key to read collection requests for Newman API runs |
+| **Panel Access** | `SHIPMOZO_EMAIL` / `SHIPMOZO_PASSWORD` | Credentials used by Python Playwright to log in to the merchant panel |
+| **Storage CDN** | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Cloudinary settings to host screenshots of failed test runs |
+
+Ensure your target test collection UID is configured in the environment (`POSTMAN_COLLECTION_ID`) or overridden per-scenario.
+
+
+### 1.4 Switching Roles
 
 Click the **role dropdown** in the top-right corner of the top bar to switch between roles:
 
@@ -59,7 +73,7 @@ Click the **role dropdown** in the top-right corner of the top bar to switch bet
 
 The sidebar navigation automatically adjusts based on your selected role.
 
-### 1.4 Navigation
+### 1.5 Navigation
 
 The **left sidebar** contains all platform modules. Click any item to navigate:
 
@@ -144,10 +158,11 @@ The Dashboard provides a high-level overview of your testing activity.
    - **Name**: Descriptive name (e.g., "Verify Order Creation with COD")
    - **Description**: What the test validates
    - **Type**: `UI` (Playwright browser test) or `API` (API endpoint test)
-   - **Script ID**: Path to the automation script (e.g., `orders/createOrder.spec.ts`)
+   - **Script ID**: Path or identifier for the runner. For **API** tests, this must match the request name in your Postman collection (e.g., `Create Order`). For **UI** tests, this must map to one of the supported Playwright Python automation E2E flows (e.g., `order_create_domestic`, `rate_calculator_domestic_happy`).
    - **Tags**: Comma-separated tags (e.g., `smoke, regression, p0`)
    - **Status**: `Active`, `Draft`, or `Deprecated`
-4. Click **"Create Test Case"**
+5. Click **"Create Test Case"**
+
 
 ### 3.7 Editing / Deleting a Test Case
 
@@ -360,7 +375,8 @@ The Production environment is **locked** for non-QA-Lead roles. If you're logged
 
 ### 8.1 Overview
 
-The Live Monitor provides real-time visibility into running (and completed) test executions. It auto-refreshes every 1.5 seconds.
+The Live Monitor provides real-time visibility into running (and completed) test executions. It tracks actual backend runner progress (from Newman or Python Playwright) and streams logs directly from the running processes. It auto-refreshes every 1.5 seconds.
+
 
 ### 8.2 Layout
 
@@ -536,7 +552,7 @@ Only the **QA Lead** role can edit the Production environment. All other roles s
 **A:** Yes. Firebase Firestore provides real-time synchronization. If you create a test case on your laptop, it will appear on your phone's browser within seconds.
 
 ### Q: What happens if I close the browser during a running execution?
-**A:** The execution will remain in "RUNNING" status in Firestore since the simulation engine runs client-side. You'll need to manually mark it as aborted or ignore it. In a future version with server-side execution, this will be handled automatically.
+**A:** The execution runs on the backend server, so it will continue running and update Firestore even if you close your browser. You can reconnect to the same run using the deep link, and you will see the logs continue to populate.
 
 ### Q: Can two people run executions at the same time?
 **A:** Yes. Each execution creates a unique document in Firestore. Multiple users can trigger independent executions simultaneously.
@@ -554,8 +570,8 @@ Only the **QA Lead** role can edit the Production environment. All other roles s
 3. Refresh the AEP platform — the Seed Modal will appear again
 4. Click "Seed Data to Firestore"
 
-### Q: Can I import my real Playwright test cases?
-**A:** Yes, you can manually create test cases in the Test Repository module with the script IDs matching your actual automation scripts. In v1.0, the execution engine simulates runs. In a future version, the platform will connect to real Playwright runners.
+### Q: Can I run my real Playwright and Postman test cases?
+**A:** Yes. API tests are fetched directly from your Postman collection and run via Newman. UI E2E tests are executed using real Playwright Python browser scripts against the configured panel. If you need navigation fixes, the AI self-heal mechanism is triggered automatically on failures.
 
 ### Q: Is my data secure?
 **A:** In v1.0 (test mode), Firestore rules are open. For production use, Firebase Security Rules should be configured to require authentication. The platform uses HTTPS for all data transmission.
@@ -565,6 +581,7 @@ Only the **QA Lead** role can edit the Production environment. All other roles s
 
 ### Q: What does "Stop on Failure" mean in Workflows?
 **A:** When enabled, if any step in the workflow fails, all subsequent steps are immediately marked as "SKIPPED" and the execution ends with a FAILED status. When disabled, all steps run regardless of individual failures.
+
 
 ---
 

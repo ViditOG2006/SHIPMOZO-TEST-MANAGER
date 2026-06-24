@@ -75,12 +75,15 @@ AEP eliminates the need for non-technical stakeholders to understand Playwright,
 
 | Component | Provider | Monthly Cost (Spark/Free) | Production Estimate |
 |---|---|---|---|
+| Backend Web Service | Render (Node.js Service) | $7 (Starter Web Service) | $7-15/month |
 | Frontend Hosting | Render (Static Site) | $0 | $0 |
 | Database | Firebase Firestore | $0 (50k reads/day) | $25-50/month at scale |
+| Image & Video Storage | Cloudinary (CDN) | $0 (Free Tier) | $15-30/month at scale |
 | Authentication | Firebase Auth | $0 (50k MAUs) | $0 |
 | File Storage | Firebase Cloud Storage | $0 (5GB) | $5-10/month |
 | Domain | Custom domain | $12/year | $12/year |
-| **Total** | | **$0** | **~$40-60/month** |
+| **Total** | | **$19/month** | **~$64-124/month** |
+
 
 ---
 
@@ -166,20 +169,30 @@ AEP eliminates the need for non-technical stakeholders to understand Playwright,
 │  Browser    │
 │  (React)    │
 │             │
-│  Zustand    │◄──── onSnapshot (real-time push)
-│  Stores     │
-│    │        │
-│    ▼        │
-│  Firebase   │─────► Firestore Cloud DB
-│  SDK        │         │
-│             │         ├── /modules
-│             │         ├── /testCases
-│             │         ├── /testSuites
-│             │         ├── /testDataSets
-│             │         ├── /workflows
-│             │         ├── /environments
-│             │         └── /executions
-└─────────────┘
+│  Zustand    │◄──── onSnapshot (real-time push) ◄──────────┐
+│  Stores     │◄─────────────────┐                          │
+│    │        │                  │                          │
+│    │ (REST API trigger)        │                          │
+│    ▼        │                  │                          │
+│ ┌──────────┐│                  │                          │
+│ │ Express  ││                  │                          │
+│ │ Backend  ││                  │                          │
+│ └────┬─────┘│                  │                          │
+│      │      │                  │                          │
+│      ▼      │                  │                          │
+│ ┌──────────┐│                  │                          │
+│ │ Execution││                  │                          │
+│ │ Engine   ││                  │                          │
+│ └────┬─────┘│                  │                          │
+│      ├──────┼──────────────────┼─────────────────────┐    │
+│      ▼      │                  ▼                     ▼    │
+│ ┌──────────┐│            ┌───────────┐         ┌──────────┐
+│ │ Newman / ││            │ Firebase  │         │Cloudinary│
+│ │Playwright│├───────────►│ Firestore │         │Image CDN │
+│ └──────────┘│ (Updates)  └───────────┘         └──────────┘
+└─────────────┘                  ▲ (direct read)       ▲ (images)
+                                 │                     │
+                                 └─────────────────────┘
 ```
 
 ---
@@ -229,9 +242,9 @@ AEP eliminates the need for non-technical stakeholders to understand Playwright,
 | Risk | Likelihood | Impact | Mitigation |
 |---|---|---|---|
 | Firestore free tier limits exceeded | Medium | Medium | Monitor usage, upgrade to Blaze plan ($25/mo) |
-| Execution simulation != real tests | High | High | Phase 2: Integrate real Playwright/API runners |
+| Running heavy E2E tests on Render Free/Starter | High | High | Throttle concurrency, run browser headless, optimize memory footprint of Python/Playwright processes |
 | Firebase vendor lock-in | Low | Medium | Service layer abstracts DB calls; portable |
-| Single-page app SEO | Low | Low | Not applicable (internal tool) |
+| Execution engine resource leaks | Medium | High | Automated cleanup of stale browser sessions (killAllPythonForRun, process timeouts) |
 | Concurrent execution conflicts | Medium | Medium | Firestore transactions for writes |
 
 ---
@@ -244,11 +257,12 @@ AEP eliminates the need for non-technical stakeholders to understand Playwright,
 - Deployed on Render
 - Simulated execution engine
 
-### Phase 2 — Real Integration (Q3 2026)
-- Connect to real Playwright test runner via Cloud Functions
-- GitHub Actions / Jenkins integration for CI triggers
-- Real screenshots from failed tests
-- Email/Slack notifications on failure
+### Phase 2 — Real Integration (✅ COMPLETE)
+- Connect React front-end to Express Node.js backend web service
+- Integrated Postman API and Newman npm package for real API runs
+- Integrated Python Playwright E2E runners for live browser testing of Shipmozo Panel
+- Integrated Playwright MCP for self-healing UI test navigation scripts on failure
+- Persisted test runs, logs, and evidence screenshots (via Cloudinary) directly to Firebase Firestore
 
 ### Phase 3 — Enterprise (Q4 2026)
 - Firebase Authentication with Google SSO
@@ -263,3 +277,4 @@ AEP eliminates the need for non-technical stakeholders to understand Playwright,
 - Parallel execution engine
 - Performance testing module
 - Mobile app for monitoring
+

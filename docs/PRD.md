@@ -32,12 +32,11 @@ Build a centralized web-based Automation Execution Platform that enables QA Engi
 
 ### 1.3 Non-Goals (Out of Scope for v1.0)
 
-- AI-powered test generation or auto-healing
-- Direct integration with Playwright/API runners (simulated in v1.0)
 - User authentication with login/password (role switcher in v1.0)
 - Scheduled/automated regression execution (manual trigger only)
 - Multi-tenant / multi-project architecture
 - Mobile native app
+
 
 ---
 
@@ -158,16 +157,19 @@ Build a centralized web-based Automation Execution Platform that enables QA Engi
 
 | ID | Requirement | Priority | Status |
 |----|-------------|----------|--------|
-| EE-001 | Simulated execution: QUEUED → RUNNING → step-by-step → PASSED/FAILED | P0 | ✅ Done |
-| EE-002 | ~78% pass rate with realistic error messages | P1 | ✅ Done |
-| EE-003 | Step-by-step processing with 2.2s delay per step | P0 | ✅ Done |
-| EE-004 | Generate realistic Playwright-style log entries per step | P0 | ✅ Done |
-| EE-005 | Stop-on-failure logic: skip remaining steps if configured | P0 | ✅ Done |
-| EE-006 | Track: passed, failed, skipped counts in real-time | P0 | ✅ Done |
-| EE-007 | Calculate progress percentage during execution | P0 | ✅ Done |
-| EE-008 | Record start time, end time, duration | P0 | ✅ Done |
-| EE-009 | Support abort/stop execution mid-run | P0 | ✅ Done |
-| EE-010 | All execution state persisted to Firestore in real-time | P0 | ✅ Done |
+| EE-001 | Real execution: SPA triggers Express API, which spawns actual test runners | P0 | ✅ Done |
+| EE-002 | Run API test cases using Newman headless library via Postman REST API | P0 | ✅ Done |
+| EE-003 | Run UI test cases using Playwright Python runners in single-session batching | P0 | ✅ Done |
+| EE-004 | Capture real execution logs, timing, and error details dynamically | P0 | ✅ Done |
+| EE-005 | E2E self-healing: Automatically invoke Playwright MCP to repair nav steps on failure | P0 | ✅ Done |
+| EE-006 | Stop-on-failure logic: skip remaining steps in workflow if configured | P0 | ✅ Done |
+| EE-007 | Track: passed, failed, skipped counts in real-time | P0 | ✅ Done |
+| EE-008 | Calculate progress percentage during execution | P0 | ✅ Done |
+| EE-009 | Record start time, end time, and duration | P0 | ✅ Done |
+| EE-010 | Support execution abort / process termination mid-run | P0 | ✅ Done |
+| EE-011 | All execution state and logs persisted to Firestore in real-time | P0 | ✅ Done |
+| EE-012 | Capture and upload failure screenshots to Cloudinary storage | P1 | ✅ Done |
+
 
 ### Module 7: Real-Time Monitoring
 
@@ -195,7 +197,8 @@ Build a centralized web-based Automation Execution Platform that enables QA Engi
 | RP-004 | Accordion list of executions with: runId, status, type, env, pass rate bar | P0 | ✅ Done |
 | RP-005 | Expand execution to see per-step results | P0 | ✅ Done |
 | RP-006 | Failed step detail: error message, stack trace, step logs | P0 | ✅ Done |
-| RP-007 | Screenshot placeholder for failed tests | P2 | ✅ Done |
+| RP-007 | Real screenshot display from Cloudinary for failed UI tests | P0 | ✅ Done |
+
 | RP-008 | Navigate to Monitor from any execution row | P1 | ✅ Done |
 | RP-009 | Print/Export button | P2 | ✅ Done |
 
@@ -293,7 +296,8 @@ All data persisted to Firebase Firestore in real-time. Changes are immediately r
 |---|---------|----------|
 | AC-1 | All 9 modules load without errors | ✅ |
 | AC-2 | CRUD operations persist to Firestore | ✅ |
-| AC-3 | Execution engine simulates realistic test runs | ✅ |
+| AC-3 | Execution engine triggers real Playwright and Newman test runs | ✅ |
+
 | AC-4 | Live monitor updates every 1.5 seconds | ✅ |
 | AC-5 | Role switcher changes visible navigation | ✅ |
 | AC-6 | Analytics charts render with data | ✅ |

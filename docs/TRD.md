@@ -21,45 +21,36 @@
 ┌──────────────────────────────────────────────────────────────────┐
 │                         CLIENT TIER                              │
 │                                                                  │
-│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌───────────────────┐ │
-│  │ React   │  │ Zustand  │  │ React   │  │ Recharts          │ │
-│  │ 19.x    │  │ Stores   │  │ Router  │  │ Charts            │ │
-│  └────┬────┘  └────┬─────┘  └────┬────┘  └───────────────────┘ │
+│  ┌─────────┐  ┌──────────┐  ┌─────────┐  ┌───────────────────┐   │
+│  │ React   │  │ Zustand  │  │ React   │  │ Recharts          │   │
+│  │ 19.x    │  │ Stores   │  │ Router  │  │ Charts            │   │
+│  └────┬────┘  └────┬─────┘  └────┬────┘  └───────────────────┘   │
 │       │            │             │                               │
-│       ▼            ▼             ▼                               │
-│  ┌──────────────────────────────────────────────────────────────┐│
-│  │              Firebase Client SDK (v11.x)                     ││
-│  │  ┌──────────────┐  ┌─────────────┐  ┌─────────────────┐    ││
-│  │  │ getFirestore  │  │ onSnapshot  │  │ setDoc/updateDoc│    ││
-│  │  └──────────────┘  └─────────────┘  └─────────────────┘    ││
-│  └──────────────────────────────────────────────────────────────┘│
-└──────────────────────────────┬───────────────────────────────────┘
-                               │ HTTPS (WebSocket for real-time)
-                               ▼
+│       └────────────┼─────────────┘                               │
+│                    ▼ (REST API / execution trigger)              │
+└────────────────────┬─────────────────────────────────────────────┘
+                     │ HTTPS
+                     ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                       CLOUD TIER (Firebase)                      │
+│                      BACKEND WEB SERVICE TIER                    │
 │                                                                  │
-│  ┌─────────────────┐  ┌────────────────┐  ┌──────────────────┐ │
-│  │  Firestore      │  │  Firebase Auth │  │  Cloud Storage   │ │
-│  │  (NoSQL DB)     │  │  (future)      │  │  (future)        │ │
-│  │                 │  │                │  │                  │ │
-│  │  7 Collections  │  │  User mgmt    │  │  Screenshots,    │ │
-│  │  Real-time sync │  │  Roles        │  │  Artifacts       │ │
-│  └─────────────────┘  └────────────────┘  └──────────────────┘ │
-│                                                                  │
-│  Project: shipmozo-a2d3f                                        │
-│  Region: asia-south1                                            │
-└──────────────────────────────────────────────────────────────────┘
-                               │
-                               ▼
+│  ┌───────────────────────────┐  ┌─────────────────────────────┐  │
+│  │ Node.js Express server    │  │ Playwright Python Runner    │  │
+│  │ (Job Queue & Newman runner)◄─┼►(Single-session E2E batch)  │  │
+│  └─────────────┬─────────────┘  └──────────────┬──────────────┘  │
+│                │                               │                 │
+│                └──────────────┬────────────────┘                 │
+└───────────────────────────────┼──────────────────────────────────┘
+                                │ HTTPS / REST / SDK
+                                ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                      HOSTING TIER (Render)                       │
+│                          CLOUD SERVICES                          │
 │                                                                  │
-│  Type: Static Site                                              │
-│  Build: npm install && npm run build                            │
-│  Serve: ./dist (Vite production bundle)                         │
-│  Routing: /* → /index.html (SPA rewrite)                        │
-│  URL: https://shipmozo-test-manager.onrender.com                │
+│  ┌───────────────────────────┐  ┌─────────────────────────────┐  │
+│  │ Firebase Suite            │  │ Cloudinary CDN              │  │
+│  │ - Firestore Cloud DB      │  │ (Screenshot and media       │  │
+│  │ - Firebase Auth (future)  │  │  evidence hosting)          │  │
+│  └───────────────────────────┘  └─────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -76,16 +67,23 @@
 | **CSV Parsing** | PapaParse | 5.x | CSV import/export for test data |
 | **Icons** | Lucide React | 0.5.x | Icon library |
 | **Database** | Firebase Firestore | 11.x | Cloud NoSQL with real-time sync |
-| **Hosting** | Render | — | Static site CDN |
+| **Backend Framework** | Node.js Express | 4.x | REST API server & test orchestrator |
+| **API Test Engine** | Newman (npm) | 6.x | Postman collection headless runner |
+| **UI Test Engine** | Playwright (Python) | 1.60.x | Browser automation for panel testing |
+| **Image Hosting** | Cloudinary | — | Upload and store failure evidence screenshots |
+| **Hosting Platform** | Render | — | Node.js Web Service platform |
 
-### 1.3 No Backend Server
+### 1.3 Web Service Architecture
 
-This application has **no Express/Node.js server**. The React SPA communicates directly with Firebase Firestore via the client SDK. All business logic runs in the browser.
+Unlike standard static sites, this application runs a **Node.js Express backend server** along with the Vite-compiled React frontend SPA. The React SPA communicates with the Express backend via standard HTTP REST endpoints to trigger and manage real test runs, while listening to Firebase Firestore directly for live execution statuses and logs.
 
 ```
-❌  Browser → Express Server → Database
-✅  Browser → Firebase SDK → Firestore (direct)
+React SPA ───► Express Backend (REST API) ───► Newman & Playwright Runners
+    ▲                                               │
+    │ (onSnapshot real-time sync)                   │ (Writes log & status)
+    └────────────────── Firebase Firestore ◄────────┘
 ```
+
 
 ---
 
@@ -302,31 +300,45 @@ React component re-renders
 
 ### 4.3 Execution Engine
 
-The execution simulation engine runs client-side using `setTimeout` chains:
+The execution engine runs on the Express backend and manages real test runs via subprocess execution:
 
 ```
-triggerExecution()
-    ↓
-Write initial execution doc (QUEUED) → Firestore
-    ↓
-setTimeout(600ms) → runStep()
-    ↓
-Mark step RUNNING → Firestore write
-    ↓
-setTimeout(2200ms) → resolve step
-    ↓
-Random pass/fail (78% pass rate)
-    ↓
-Generate Playwright-style logs
-    ↓
-Update step status + logs → Firestore write
-    ↓
-If more steps: recurse → runStep()
-    ↓
-If done: set final status (PASSED/FAILED) → Firestore write
+triggerExecution()  (REST POST /api/testing/run)
+    │
+    ▼
+Write initial execution record (QUEUED) to Firestore
+    │
+    ▼
+Enqueue job in backend test runner map
+    │
+    ▼
+Mark step status as RUNNING in Firestore
+    │
+    ▼
+If API Test:
+    ├─► Fetch Postman collection and environment via Postman Cloud API
+    └─► Execute newman.run() headless
+If UI E2E Test:
+    ├─► Spawn Playwright Python runner subprocess (run_panel_e2e_batch.py)
+    └─► If navigation fails, invoke Playwright MCP self-heal agent
+    │
+    ▼
+Stream real-time console logs and update step status in Firestore
+    │
+    ▼
+On step failure:
+    ├─► Capture page screenshot and upload to Cloudinary CDN
+    └─► Update errorMsg and step status in Firestore
+    │
+    ▼
+If workflow stopOnFailure is enabled: skip remaining steps in Firestore
+    │
+    ▼
+Mark execution status as PASSED/FAILED/ABORTED and set endTime in Firestore
 ```
 
-Each step update writes to Firestore, so the `onSnapshot` listener on `/executions/{id}` pushes real-time updates to the Monitor page (or any other open tab).
+The client React SPA listens to the Firestore document updates for `/executions/{id}` using `onSnapshot`, driving the real-time UI monitor updates.
+
 
 ---
 
@@ -392,18 +404,14 @@ service cloud.firestore {
 ```
 Developer pushes to GitHub (main branch)
     ↓
-Render detects push (auto-deploy enabled)
+Render detects push (auto-deploy Web Service)
     ↓
-Render runs: npm install && npm run build
+Render executes scripts/render-build.sh:
+  - npm ci && npm run build (builds client assets)
+  - pip install -r requirements.txt (installs Python deps)
+  - playwright install chromium (provisions browser engine)
     ↓
-Vite builds production bundle:
-  - index.html (0.64 KB)
-  - index-CixnnXEv.css (20.99 KB)
-  - index-sb_T8jgw.js (1,269 KB / 372 KB gzipped)
-    ↓
-Render serves ./dist/ via CDN
-    ↓
-SPA rewrite rule: /* → /index.html
+Render starts Web Service: node server.js
     ↓
 Live at: https://shipmozo-test-manager.onrender.com
 ```
@@ -412,17 +420,29 @@ Live at: https://shipmozo-test-manager.onrender.com
 
 | Setting | Value |
 |---|---|
-| Type | Static Site |
+| Type | Web Service (Node.js) |
 | Repository | github.com/ViditOG2006/SHIPMOZO-TEST-MANAGER |
 | Branch | main |
-| Build Command | `npm install && npm run build` |
-| Publish Directory | `dist` |
-| Rewrite Rule | `/* → /index.html` (Rewrite) |
+| Build Command | `scripts/render-build.sh` |
+| Start Command | `node server.js` |
 | Auto-Deploy | On push to main |
 
 ### 6.3 Environment Variables
 
-No server-side environment variables are needed. Firebase config is embedded in the client bundle (this is safe — Firebase Security Rules protect data, not the config keys).
+| Variable | Description |
+|---|---|
+| `NODE_ENV` | Environment mode (`production` / `development`) |
+| `ANTHROPIC_API_KEY` | Key for Claude model orchestrations |
+| `POSTMAN_API_KEY` | Postman API key for collection retrieval |
+| `SHIPMOZO_EMAIL` | Panel login username |
+| `SHIPMOZO_PASSWORD` | Panel login password |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary storage identifier |
+| `CLOUDINARY_API_KEY` | Cloudinary authentication key |
+| `CLOUDINARY_API_SECRET` | Cloudinary authentication secret |
+| `AI_PROVIDER` | LLM service provider (`claude`) |
+| `API_RUN_BACKEND` | API execution backend (`postman-mcp`) |
+| `SCRIPT_DEBUG_BACKEND`| Navigation self-heal method (`mcp`) |
+
 
 ---
 
