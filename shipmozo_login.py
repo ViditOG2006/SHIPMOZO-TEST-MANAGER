@@ -18,15 +18,23 @@ from panel_url import default_panel_base, login_urls
 from panel_e2e.e2e_log import e2e_log
 
 E2E_FAST = os.getenv("E2E_FAST", "1").lower() in {"1", "true", "yes"}
-_ON_RENDER = os.getenv("RENDER", "").lower() in {"true", "1", "yes"} or bool(
-    os.getenv("RENDER_EXTERNAL_URL", "").strip()
+def _on_render_host() -> bool:
+    host = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").lower()
+    return "onrender.com" in host
+
+
+_ON_RENDER = (
+    os.getenv("RENDER", "").lower() in {"true", "1", "yes"}
+    or bool(os.getenv("RENDER_EXTERNAL_URL", "").strip())
+    or bool(os.getenv("RENDER_SERVICE_ID", "").strip())
+    or _on_render_host()
 )
 
 LOGIN_URLS = login_urls()
 
 DASHBOARD_URL_HINT = "/orders/new"
 LOGIN_PATH_HINT = "/login"
-_default_login_wait = "60" if _ON_RENDER else "30"
+_default_login_wait = "90" if _ON_RENDER else "30"
 LOGIN_WAIT_S = int(os.getenv("LOGIN_WAIT_S", _default_login_wait))
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)

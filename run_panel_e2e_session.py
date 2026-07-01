@@ -71,7 +71,13 @@ ORDER_CREATE_FLOWS = {"order_create", "order_create_domestic"}
 
 ORDER_VERIFY_FLOWS = {"order_verify", "order_verify_new_orders", "orders_verify"}
 PANEL_UI_FLOWS = {"panel_ui_check", "ui_check", "panel_custom"}
-LOGIN_UI_FLOWS = {"panel_login_smoke", "panel_login", "login_ui"}
+LOGIN_UI_FLOWS = {
+    "panel_login_smoke",
+    "panel_login",
+    "login_ui",
+    "auth/loginvalid",
+    "auth_loginvalid",
+}
 
 
 
