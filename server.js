@@ -200,6 +200,75 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+const { createScriptGenJob, getScriptGenJob } = require("./lib/script-gen-job-store");
+const { generateE2eScript } = require("./lib/e2e-script-writer");
+
+app.post("/api/e2e/generate-script", async (req, res) => {
+  const { executionId, stepId, testCaseName, scriptId } = req.body;
+  if (!testCaseName || !scriptId) {
+    res.status(400).json({ error: "testCaseName and scriptId are required" });
+    return;
+  }
+
+  const jobId = createScriptGenJob({ executionId, stepId, testCaseName, scriptId });
+  
+  // Trigger script generation in the background
+  generateE2eScript({ executionId, stepId, testCaseName, scriptId, jobId }).catch((err) => {
+    console.error("[api] generateE2eScript background error:", err);
+  });
+
+  res.json({ ok: true, jobId });
+});
+
+app.get("/api/e2e/generate-script/status/:jobId", (req, res) => {
+  const job = getScriptGenJob(req.params.jobId);
+  if (!job) {
+    res.status(404).json({ error: "Job not found" });
+    return;
+  }
+  res.json(job);
+});
+
+app.post("/api/e2e/retry-step", async (req, res) => {
+  const { executionId, stepId } = req.body;
+  if (!executionId || !stepId) {
+    res.status(400).json({ error: "executionId and stepId are required" });
+    return;
+  }
+
+  try {
+    const { getDoc, updateFireDoc } = require("./lib/firestore");
+    const execDoc = await getDoc("executions", executionId);
+    if (!execDoc) {
+      res.status(404).json({ error: "Execution not found" });
+      return;
+    }
+
+    const steps = (execDoc.steps || []).map((s) => {
+      if (s.id === stepId) {
+        return {
+          ...s,
+          status: "QUEUED",
+          logs: [
+            ...(s.logs || []),
+            { time: new Date().toISOString(), level: "INFO", msg: "Manually triggered retry..." }
+          ]
+        };
+      }
+      return s;
+    });
+
+    await updateFireDoc("executions", executionId, {
+      status: "QUEUED",
+      steps,
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/ai/config", (_req, res) => {
   res.json(getConfigStatus());
 });

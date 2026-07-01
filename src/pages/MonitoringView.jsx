@@ -6,6 +6,7 @@ import { Square, ArrowLeft, RefreshCw, Activity } from 'lucide-react';
 const STATUS_BADGE = {
   PASSED: 'badge-green', FAILED: 'badge-red', RUNNING: 'badge-yellow',
   QUEUED: 'badge-gray', SKIPPED: 'badge-cyan', ABORTED: 'badge-gray',
+  AWAITING_SCRIPT: 'badge-purple',
 };
 
 function LiveClock({ startTime }) {
@@ -27,6 +28,10 @@ export default function MonitoringView() {
   const [selectedId, setSelectedId] = useState(id || activeExecutionId || null);
   const [, forceRender] = useState(0);
 
+  // AI Script Writer state
+  const [genState, setGenState] = useState({ status: 'idle', logs: [], error: null });
+  const [generating, setGenerating] = useState(false);
+
   // Auto-refresh
   useEffect(() => {
     const iv = setInterval(() => forceRender(n => n + 1), 1500);
@@ -45,6 +50,84 @@ export default function MonitoringView() {
     if (!ms) return '—';
     const s = Math.floor(ms / 1000);
     return `${Math.floor(s/60)}m ${s%60}s`;
+  };
+
+  const handleGenerateScript = async () => {
+    const step = exec?.steps?.find(s => s.status === 'AWAITING_SCRIPT');
+    if (!step) return;
+
+    setGenerating(true);
+    setGenState({ status: 'running', logs: [{ time: new Date().toISOString(), msg: 'Requesting script generation from backend...' }], error: null });
+
+    try {
+      const res = await fetch('/api/e2e/generate-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          executionId: exec.id,
+          stepId: step.id,
+          testCaseName: step.name,
+          scriptId: step.missingFlow || step.scriptId
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.jobId) {
+        throw new Error(data.error || 'Failed to start generation job');
+      }
+
+      pollJobStatus(data.jobId);
+    } catch (err) {
+      setGenState({ status: 'error', logs: [], error: err.message });
+      setGenerating(false);
+    }
+  };
+
+  const pollJobStatus = (jobId) => {
+    const iv = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/e2e/generate-script/status/${jobId}`);
+        if (!res.ok) throw new Error('Failed to fetch job status');
+        const job = await res.json();
+
+        setGenState({
+          status: job.status,
+          logs: job.logs || [],
+          error: job.error || null
+        });
+
+        if (job.status === 'done' || job.status === 'error') {
+          clearInterval(iv);
+          setGenerating(false);
+        }
+      } catch (err) {
+        clearInterval(iv);
+        setGenState({ status: 'error', logs: [], error: err.message });
+        setGenerating(false);
+      }
+    }, 1500);
+  };
+
+  const handleRetryStep = async () => {
+    const step = exec?.steps?.find(s => s.status === 'AWAITING_SCRIPT');
+    if (!step) return;
+
+    try {
+      const res = await fetch('/api/e2e/retry-step', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          executionId: exec.id,
+          stepId: step.id
+        })
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to retry step');
+      }
+      setGenState({ status: 'idle', logs: [], error: null });
+    } catch (err) {
+      alert(`Retry failed: ${err.message}`);
+    }
   };
 
   const allLogs = exec?.steps?.flatMap(s => (s.logs || []).map(l => ({ ...l, stepName: s.name, stepStatus: s.status }))) || [];
@@ -138,6 +221,71 @@ export default function MonitoringView() {
                 ))}
               </div>
             </div>
+
+            {exec.status === 'AWAITING_SCRIPT' && (
+              <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--warning)', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'start', gap: 12 }}>
+                  <span style={{ fontSize: 20 }}>🤖</span>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: 'var(--warning)', fontSize: 14, marginBottom: 2 }}>AI Script Writer: Missing Script Detected</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      The E2E test case <strong>"{exec.steps.find(s => s.status === 'AWAITING_SCRIPT')?.name}"</strong> requires a script flow (<code>{exec.steps.find(s => s.status === 'AWAITING_SCRIPT')?.missingFlow || 'unknown'}</code>) which is currently not defined in the workspace. You can have Claude write this script by navigating the panel.
+                    </div>
+                  </div>
+                </div>
+
+                {genState.status === 'idle' && (
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button className="btn btn-primary btn-sm" onClick={handleGenerateScript} disabled={generating}>
+                      🤖 Generate Script with AI
+                    </button>
+                  </div>
+                )}
+
+                {genState.status === 'running' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--warning)' }}>
+                      <RefreshCw size={12} className="spin" />
+                      <span>Claude is launching a browser to observe the panel and generate python script...</span>
+                    </div>
+                    <div className="log-console" style={{ maxHeight: 120, overflowY: 'auto', background: 'rgba(0,0,0,0.25)', padding: '8px 12px', fontSize: 11, fontFamily: 'monospace', borderRadius: 'var(--radius-sm)' }}>
+                      {genState.logs.map((log, i) => (
+                        <div key={i} style={{ color: '#94a3b8', marginBottom: 2 }}>
+                          <span style={{ opacity: 0.4, marginRight: 6 }}>[{new Date(log.time).toLocaleTimeString()}]</span>
+                          <span>{log.msg}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {genState.status === 'done' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ color: 'var(--success)', fontWeight: 600, fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>✓ Script generated and registered successfully!</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button className="btn btn-success btn-sm" onClick={handleRetryStep}>
+                        ▶ Run Test Case Now
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {genState.status === 'error' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div style={{ color: 'var(--danger)', fontWeight: 600, fontSize: 12 }}>
+                      ⚠️ Error: {genState.error}
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      <button className="btn btn-primary btn-sm" onClick={handleGenerateScript}>
+                        Retry Generation
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="two-col" style={{ flex: 1, minHeight: 0, alignItems: 'start' }}>
               {/* Steps Table */}

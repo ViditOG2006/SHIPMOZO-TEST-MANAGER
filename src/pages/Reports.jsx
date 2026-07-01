@@ -6,6 +6,7 @@ import { ChevronDown, ChevronUp, Eye, Download, Filter } from 'lucide-react';
 const STATUS_BADGE = {
   PASSED: 'badge-green', FAILED: 'badge-red', RUNNING: 'badge-yellow',
   QUEUED: 'badge-gray', SKIPPED: 'badge-cyan', ABORTED: 'badge-gray',
+  AWAITING_SCRIPT: 'badge-purple',
 };
 
 function FailureDetail({ step }) {

@@ -52,7 +52,13 @@ async def run_e2e(scenario: dict, run_id: str) -> dict:
 
     runner = FLOWS.get(flow)
     if not runner:
-        return {"ok": False, "error": f"Unsupported e2e flow: {flow}"}
+        try:
+            import importlib
+            safe_flow = "".join([c if c.isalnum() or c == "_" else "_" for c in flow]).lower()
+            mod = importlib.import_module(f"panel_e2e.generated.{safe_flow}")
+            runner = getattr(mod, f"run_{safe_flow}_flow")
+        except Exception as exc:
+            return {"ok": False, "error": f"Unsupported e2e flow: {flow} (Dynamic load error: {exc})"}
 
     out_dir = Path("output") / "cloud-images" / run_id / "raw"
     out_dir.mkdir(parents=True, exist_ok=True)
