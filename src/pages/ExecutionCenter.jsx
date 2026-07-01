@@ -38,9 +38,9 @@ function IndividualExec() {
   const modTCs = testCases.filter(tc => tc.moduleId === sel.moduleId);
   const selTC = testCases.find(tc => tc.id === sel.testCaseId);
 
-  const launch = () => {
+  const launch = async () => {
     if (!sel.testCaseId) return;
-    const id = triggerExecution({ type: 'INDIVIDUAL', referenceId: sel.testCaseId, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: [sel.testCaseId], label: selTC?.name });
+    const id = await triggerExecution({ type: 'INDIVIDUAL', referenceId: sel.testCaseId, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: [sel.testCaseId], label: selTC?.name });
     navigate('/monitor/' + id);
   };
 
@@ -159,9 +159,9 @@ function SuiteExec() {
 
   const selSuite = TEST_SUITES.find(s => s.id === sel.suiteId);
 
-  const launch = () => {
+  const launch = async () => {
     if (!selSuite) return;
-    const id = triggerExecution({ type: 'SUITE', referenceId: selSuite.id, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: selSuite.testCaseIds, label: selSuite.name });
+    const id = await triggerExecution({ type: 'SUITE', referenceId: selSuite.id, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: selSuite.testCaseIds, label: selSuite.name });
     navigate('/monitor/' + id);
   };
 
@@ -236,9 +236,9 @@ function WorkflowExec() {
 
   const selWF = workflows.find(w => w.id === selId);
 
-  const launch = () => {
+  const launch = async () => {
     if (!selWF) return;
-    const id = triggerExecution({ type: 'WORKFLOW', referenceId: selWF.id, environmentId: selWF.environment, dataSetId: selWF.dataSetId, testCaseIds: selWF.steps.map(s => s.testCaseId), label: selWF.name });
+    const id = await triggerExecution({ type: 'WORKFLOW', referenceId: selWF.id, environmentId: selWF.environment, dataSetId: selWF.dataSetId, testCaseIds: selWF.steps.map(s => s.testCaseId), label: selWF.name });
     navigate('/monitor/' + id);
   };
 
@@ -278,11 +278,11 @@ function ModuleExec() {
   const { triggerExecution } = useExecutionStore();
   const [sel, setSel] = useState({ modId: '', envId: environments[1]?.id });
 
-  const launch = () => {
+  const launch = async () => {
     if (!sel.modId) return;
     const tcs = testCases.filter(tc => tc.moduleId === sel.modId && tc.status === 'Active').map(tc => tc.id);
     const mod = modules.find(m => m.id === sel.modId);
-    const id = triggerExecution({ type: 'MODULE', referenceId: sel.modId, environmentId: sel.envId, testCaseIds: tcs, label: mod?.name });
+    const id = await triggerExecution({ type: 'MODULE', referenceId: sel.modId, environmentId: sel.envId, testCaseIds: tcs, label: mod?.name });
     navigate('/monitor/' + id);
   };
 

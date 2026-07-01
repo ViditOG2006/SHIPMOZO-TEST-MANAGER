@@ -119,9 +119,9 @@ export default function WorkflowBuilder() {
     updateSteps(active.id, arrayMove(steps, oldIdx, newIdx).map((s, i) => ({ ...s, order: i + 1 })));
   };
 
-  const runWorkflow = () => {
+  const runWorkflow = async () => {
     if (!active || steps.length === 0) return;
-    const id = triggerExecution({
+    const id = await triggerExecution({
       type: 'WORKFLOW', referenceId: active.id,
       environmentId: active.environment, dataSetId: active.dataSetId,
       testCaseIds: steps.map(s => s.testCaseId),
