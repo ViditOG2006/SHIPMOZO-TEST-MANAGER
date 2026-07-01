@@ -269,6 +269,33 @@ app.post("/api/e2e/retry-step", async (req, res) => {
   }
 });
 
+app.post("/api/executions/abort", async (req, res) => {
+  const executionId = String(req.body?.executionId || "").trim();
+  if (!executionId) {
+    res.status(400).json({ error: "executionId is required" });
+    return;
+  }
+
+  try {
+    const { getDoc, updateFireDoc } = require("./lib/firestore");
+    const execDoc = await getDoc("executions", executionId);
+    if (!execDoc) {
+      res.status(404).json({ error: "Execution not found" });
+      return;
+    }
+
+    await updateFireDoc("executions", executionId, {
+      status: "ABORTED",
+      endTime: new Date().toISOString(),
+    });
+
+    const outcome = cancelJobsForRun(execDoc.runId || executionId, "Aborted by user");
+    res.json({ ok: true, ...outcome });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get("/api/ai/config", (_req, res) => {
   res.json(getConfigStatus());
 });

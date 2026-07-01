@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Play, ChevronRight, Check, Zap } from 'lucide-react';
 import { useRepoStore, useDataStore, useWorkflowStore, useEnvStore, useExecutionStore } from '../store';
-import { TEST_SUITES } from '../data/seedData';
 import { useNavigate } from 'react-router-dom';
 
 const TABS = ['Individual', 'Suite', 'Workflow', 'Module'];
@@ -150,14 +149,14 @@ function IndividualExec() {
 
 function SuiteExec() {
   const navigate = useNavigate();
-  const { testCases } = useRepoStore();
+  const { testSuites } = useRepoStore();
   const { environments } = useEnvStore();
   const { dataSets } = useDataStore();
   const { triggerExecution } = useExecutionStore();
   const [sel, setSel] = useState({ suiteId: '', envId: environments[1]?.id, dsId: '' });
   const [step, setStep] = useState(0);
 
-  const selSuite = TEST_SUITES.find(s => s.id === sel.suiteId);
+  const selSuite = testSuites.find(s => s.id === sel.suiteId);
 
   const launch = async () => {
     if (!selSuite) return;
@@ -171,7 +170,7 @@ function SuiteExec() {
       {step === 0 && (
         <div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {TEST_SUITES.map(suite => (
+            {testSuites.map(suite => (
               <div key={suite.id} onClick={() => setSel(s => ({ ...s, suiteId: suite.id }))}
                 style={{
                   padding: '16px 20px', borderRadius: 'var(--radius-md)', cursor: 'pointer',
@@ -238,7 +237,7 @@ function WorkflowExec() {
 
   const launch = async () => {
     if (!selWF) return;
-    const id = await triggerExecution({ type: 'WORKFLOW', referenceId: selWF.id, environmentId: selWF.environment, dataSetId: selWF.dataSetId, testCaseIds: selWF.steps.map(s => s.testCaseId), label: selWF.name });
+    const id = await triggerExecution({ type: 'WORKFLOW', referenceId: selWF.id, environmentId: selWF.environment, dataSetId: selWF.dataSetId, testCaseIds: selWF.steps.map(s => s.testCaseId), label: selWF.name, stopOnFailure: selWF.stopOnFailure });
     navigate('/monitor/' + id);
   };
 

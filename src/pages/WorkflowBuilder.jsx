@@ -126,6 +126,7 @@ export default function WorkflowBuilder() {
       environmentId: active.environment, dataSetId: active.dataSetId,
       testCaseIds: steps.map(s => s.testCaseId),
       label: active.name,
+      stopOnFailure: active.stopOnFailure,
     });
     navigate('/monitor/' + id);
   };

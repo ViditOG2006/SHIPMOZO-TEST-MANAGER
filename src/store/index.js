@@ -265,7 +265,7 @@ export const useExecutionStore = create((set, get) => ({
 
   unsubscribe: () => get()._unsub.forEach(fn => fn()),
 
-  triggerExecution: async ({ type, referenceId, environmentId, dataSetId, testCaseIds, label }) => {
+  triggerExecution: async ({ type, referenceId, environmentId, dataSetId, testCaseIds, label, stopOnFailure }) => {
     const { testCases } = useRepoStore.getState();
     const id = `EX-${Date.now()}`;
     const steps = testCaseIds.map((tcId, i) => {
@@ -276,6 +276,7 @@ export const useExecutionStore = create((set, get) => ({
     const execution = {
       id, type, referenceId, environmentId: environmentId || '',
       dataSetId: dataSetId || '', status: 'QUEUED',
+      stopOnFailure: stopOnFailure !== false,
       totalTests: steps.length, passed: 0, failed: 0, skipped: 0,
       startTime: new Date().toISOString(), endTime: null,
       duration: 0, triggeredBy: 'You', runId: `RUN-${id}`,
@@ -290,10 +291,18 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   abortExecution: async (id) => {
-    await updateFireDoc(COLLECTIONS.EXECUTIONS, id, {
-      status: 'ABORTED',
-      endTime: new Date().toISOString(),
-    });
+    try {
+      await fetch('/api/executions/abort', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ executionId: id }),
+      });
+    } catch {
+      await updateFireDoc(COLLECTIONS.EXECUTIONS, id, {
+        status: 'ABORTED',
+        endTime: new Date().toISOString(),
+      });
+    }
   },
 
   setActiveExecution: (id) => set({ activeExecutionId: id }),
