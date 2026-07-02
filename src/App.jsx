@@ -14,6 +14,7 @@ import Analytics from './pages/Analytics';
 import Reports from './pages/Reports';
 import ApplicationManager from './pages/ApplicationManager';
 import TeamManager from './pages/TeamManager';
+import AuthPage from './pages/AuthPage';
 import {
   useRepoStore, useDataStore, useWorkflowStore,
   useEnvStore, useExecutionStore, useAppStore,
@@ -55,7 +56,7 @@ function LoadingScreen() {
 }
 
 function AppContent() {
-  const { loading, setLoading } = useAppStore();
+  const { loading, setLoading, isAuthenticated, initAuth } = useAppStore();
   const [showSeed, setShowSeed] = useState(false);
 
   const repoStore = useRepoStore();
@@ -67,6 +68,9 @@ function AppContent() {
   const teamStore = useTeamStore();
 
   useEffect(() => {
+    // Check SaaS Authentication State
+    initAuth();
+
     // Subscribe all collections to Firestore real-time listeners
     repoStore.subscribe();
     dataStore.subscribe();
@@ -99,6 +103,7 @@ function AppContent() {
   }, []);
 
   if (loading) return <LoadingScreen />;
+  if (!isAuthenticated) return <AuthPage />;
 
   return (
     <>

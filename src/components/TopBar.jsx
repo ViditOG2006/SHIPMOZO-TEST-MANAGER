@@ -13,6 +13,8 @@ const BREADCRUMB_MAP = {
   '/monitor': 'Live Monitor',
   '/analytics': 'Analytics',
   '/reports': 'Reports',
+  '/applications': 'Application Registry',
+  '/team': 'Team Members',
 };
 
 const ROLE_COLORS = {
@@ -25,9 +27,10 @@ const ROLE_COLORS = {
 
 export default function TopBar() {
   const { pathname } = useLocation();
-  const { role, roles, setRole, notifications, markAllRead } = useAppStore();
+  const { role, roles, setRole, notifications, markAllRead, user, logout } = useAppStore();
   const [showRoles, setShowRoles] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
   const unread = notifications.filter(n => !n.read).length;
   const page = BREADCRUMB_MAP[pathname] || BREADCRUMB_MAP[Object.keys(BREADCRUMB_MAP).find(k => pathname.startsWith(k) && k !== '/') || '/'];
 
@@ -44,7 +47,7 @@ export default function TopBar() {
         <div style={{ position: 'relative' }}>
           <button
             className="role-badge"
-            onClick={() => { setShowRoles(v => !v); setShowNotifs(false); }}
+            onClick={() => { setShowRoles(v => !v); setShowNotifs(false); setShowProfile(false); }}
             style={{ color: ROLE_COLORS[role] }}
           >
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: ROLE_COLORS[role], display: 'inline-block' }} />
@@ -68,7 +71,7 @@ export default function TopBar() {
 
         {/* Notifications */}
         <div style={{ position: 'relative' }}>
-          <button className="icon-btn" onClick={() => { setShowNotifs(v => !v); setShowRoles(false); markAllRead(); }}>
+          <button className="icon-btn" onClick={() => { setShowNotifs(v => !v); setShowRoles(false); setShowProfile(false); markAllRead(); }}>
             <Bell size={16} />
             {unread > 0 && <span className="notif-dot" />}
           </button>
@@ -85,15 +88,40 @@ export default function TopBar() {
           )}
         </div>
 
-        {/* Avatar */}
-        <div className="user-avatar" title={role}>
-          {role.split(' ').map(w => w[0]).join('').slice(0,2)}
+        {/* User Profile Dropdown */}
+        <div style={{ position: 'relative' }}>
+          <div 
+            className="user-avatar" 
+            onClick={() => { setShowProfile(v => !v); setShowRoles(false); setShowNotifs(false); }}
+            style={{ 
+              cursor: 'pointer', 
+              background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))', 
+              color: '#fff', 
+              fontWeight: 600 
+            }}
+            title={user?.name || role}
+          >
+            {(user?.name || role).split(' ').map(w => w[0]).join('').slice(0, 2)}
+          </div>
+          {showProfile && (
+            <div className="dropdown-menu" style={{ minWidth: 220, right: 0 }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
+                <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)' }}>{user?.name || 'QA User'}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{user?.email || 'demo@appiify.com'}</div>
+              </div>
+              <div style={{ padding: 4 }}>
+                <div className="dropdown-item" onClick={logout} style={{ color: 'var(--accent-red)', cursor: 'pointer', display: 'flex', gap: 8 }}>
+                  Log Out
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Close dropdowns on outside click */}
-      {(showRoles || showNotifs) && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => { setShowRoles(false); setShowNotifs(false); }} />
+      {(showRoles || showNotifs || showProfile) && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => { setShowRoles(false); setShowNotifs(false); setShowProfile(false); }} />
       )}
     </header>
   );

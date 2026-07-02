@@ -3,12 +3,22 @@ import {
   subscribeCollection, createDoc, updateFireDoc,
   deleteFireDoc, upsertDoc, COLLECTIONS
 } from '../firebase/db';
+import { 
+  onAuthStateChanged, signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, signOut, updateProfile 
+} from 'firebase/auth';
+import { auth } from '../firebase/config';
 
 // ─── App / Loading Store ───────────────────────────────────────
-export const useAppStore = create((set) => ({
+export const useAppStore = create((set, get) => ({
   role: 'QA Engineer',
   roles: ['QA Engineer', 'QA Lead', 'Product Manager', 'Developer', 'Management'],
-  setRole: (role) => set({ role }),
+  setRole: (role) => {
+    set({ role });
+    if (get().user) {
+      set(s => ({ user: { ...s.user, role } }));
+    }
+  },
   loading: true,
   setLoading: (v) => set({ loading: v }),
   seeded: false,
@@ -18,6 +28,79 @@ export const useAppStore = create((set) => ({
     localStorage.setItem('activeAppId', activeAppId);
     set({ activeAppId });
   },
+  user: null,
+  isAuthenticated: false,
+  tenantId: null,
+
+  initAuth: () => {
+    onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        set({ 
+          user: {
+            uid: firebaseUser.uid,
+            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            email: firebaseUser.email,
+            role: get().role || 'QA Lead',
+            tenantId: firebaseUser.uid
+          },
+          isAuthenticated: true,
+          tenantId: firebaseUser.uid,
+          loading: false
+        });
+      } else {
+        // Only clear if not in demo mode
+        if (get().user?.uid !== 'demo-uid') {
+          set({ user: null, isAuthenticated: false, tenantId: null, loading: false });
+        } else {
+          set({ loading: false });
+        }
+      }
+    });
+  },
+
+  login: async (email, password) => {
+    set({ loading: true });
+    await signInWithEmailAndPassword(auth, email, password);
+  },
+
+  signup: async (email, password, name, orgName) => {
+    set({ loading: true });
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: name });
+    
+    // Create new organization/tenant details doc in users collection
+    await createDoc('users', cred.user.uid, {
+      uid: cred.user.uid,
+      name,
+      email,
+      orgName: orgName || 'My Organization',
+      role: 'QA Lead',
+      tenantId: cred.user.uid
+    });
+  },
+
+  logout: async () => {
+    set({ loading: true });
+    set({ user: null, isAuthenticated: false, tenantId: null });
+    await signOut(auth);
+    set({ loading: false });
+  },
+
+  loginDemo: (role) => {
+    set({ 
+      user: { 
+        uid: 'demo-uid', 
+        name: 'Demo QA User', 
+        email: 'demo@appiify.com', 
+        role, 
+        tenantId: 'demo-tenant' 
+      }, 
+      isAuthenticated: true, 
+      tenantId: 'demo-tenant',
+      role
+    });
+  },
+
   notifications: [
     { id: 1, msg: 'Welcome to AEP — connected to Firestore', time: 'now', read: false },
   ],
