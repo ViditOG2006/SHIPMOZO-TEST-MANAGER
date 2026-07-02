@@ -28,6 +28,7 @@ async function main() {
   console.log("Steps:");
   for (const step of data.steps || []) {
     console.log(`- Step: ${step.name} | Status: ${step.status} | Error: ${step.errorMsg}`);
+    console.log(`  Screenshot: ${step.screenshot}`);
     if (step.logs && step.logs.length) {
       console.log("  Logs:");
       for (const log of step.logs) {
