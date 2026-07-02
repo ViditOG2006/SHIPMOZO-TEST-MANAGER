@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
 import {
-  Mail, Lock, User, Building, ArrowRight, Zap, CheckCircle2,
-  KeyRound, Globe, FileCode,
+  Mail, Lock, User, Building, Zap, CheckCircle2,
+  KeyRound, Globe, FileCode, ArrowLeft,
 } from 'lucide-react';
 
 const ERROR_MAP = {
@@ -94,96 +94,79 @@ export default function AuthPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      background: 'radial-gradient(circle at 10% 20%, rgba(90, 80, 240, 0.08) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(140, 50, 240, 0.08) 0%, transparent 45%), var(--bg-primary)',
-      color: 'var(--text-primary)',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-    }}>
-      <div className="auth-pitch-panel" style={{
-        flex: 1,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '60px 80px',
-        borderRight: '1px solid var(--border-color)',
-        background: 'rgba(15, 23, 42, 0.3)',
-        backdropFilter: 'blur(20px)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
-          <div style={{
-            width: 44, height: 44,
-            background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))',
-            borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 24, boxShadow: '0 0 20px rgba(59,130,246,0.3)',
-          }}>⚡</div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.5 }}>Test Manager</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
-              Multi-App Test Orchestration
-            </div>
-          </div>
-        </div>
-
-        <h1 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, marginBottom: 20 }}>
-          One App ID.<br />
-          <span style={{ background: 'linear-gradient(135deg, #60A5FA, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Your whole test workspace.
-          </span>
-        </h1>
-
-        <p style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.6, maxWidth: 480, marginBottom: 40 }}>
-          Register your webapp in the database with a unique App ID. Team members sign in with that ID — panel URL, credentials, and Postman config are loaded from Firestore, not .env.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 420 }}>
-          {[
-            { title: 'App ID = Tenant Key', desc: 'Every user authenticates against a specific application workspace ID.' },
-            { title: 'Config in Firestore', desc: 'Target URL, panel login, and Postman collection IDs live in the database per app.' },
-            { title: 'Invite by App ID', desc: 'Share your App ID so teammates can join the same workspace.' },
-          ].map((item, idx) => (
-            <div key={idx} style={{ display: 'flex', gap: 14 }}>
-              <CheckCircle2 size={20} color="var(--success)" style={{ flexShrink: 0, marginTop: 2 }} />
+    <div className="auth-page">
+      <div className="auth-page-inner">
+        <aside className="auth-pitch-panel">
+          <div className="auth-pitch-content">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
+              <div className="auth-logo-mark">⚡</div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{item.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{item.desc}</div>
+                <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.5 }}>Test Manager</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Multi-App Test Orchestration
+                </div>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
 
-      <div style={{
-        width: 520,
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: '40px 48px',
-        overflowY: 'auto',
-        maxHeight: '100vh',
-      }}>
-        <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-            {[
-              { id: 'login', label: 'Sign In' },
-              { id: 'create', label: 'Create App' },
-              { id: 'join', label: 'Join App' },
-            ].map(tab => (
-              <button
-                key={tab.id}
-                type="button"
-                className={`btn ${mode === tab.id ? 'btn-primary' : 'btn-outline'}`}
-                style={{ flex: 1, fontSize: 12, padding: '8px 0' }}
-                onClick={() => { setMode(tab.id); setError(null); }}
-              >
-                {tab.label}
-              </button>
-            ))}
+            <h1 className="auth-headline">
+              One App ID.<br />
+              <span className="auth-headline-accent">Your whole test workspace.</span>
+            </h1>
+
+            <p className="auth-lead">
+              Register your webapp in the database with a unique App ID. Team members sign in with that ID — panel URL, credentials, and Postman config are loaded from Firestore, not .env.
+            </p>
+
+            <div className="auth-feature-list">
+              {[
+                { title: 'App ID = Tenant Key', desc: 'Every user authenticates against a specific application workspace ID.' },
+                { title: 'Config in Firestore', desc: 'Target URL, panel login, and Postman collection IDs live in the database per app.' },
+                { title: 'Invite by App ID', desc: 'Share your App ID so teammates can join the same workspace.' },
+              ].map((item, idx) => (
+                <div key={idx} className="auth-feature-item">
+                  <CheckCircle2 size={20} color="var(--success)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{item.title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{item.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+        </aside>
 
-          <div style={{ marginBottom: 20 }}>
-            <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>
+        <main className="auth-form-panel">
+          <div className="auth-form-wrap">
+            {mode !== 'login' && (
+              <button
+                type="button"
+                className="auth-back-btn"
+                onClick={() => { setMode('login'); setError(null); }}
+              >
+                <ArrowLeft size={14} /> Back to Sign In
+              </button>
+            )}
+
+            <div className="auth-mode-tabs">
+              {[
+                { id: 'login', label: 'Sign In' },
+                { id: 'create', label: 'Create App' },
+                { id: 'join', label: 'Join App' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  className={`btn ${mode === tab.id ? 'btn-primary' : 'btn-outline'}`}
+                  style={{ flex: 1, fontSize: 12, padding: '8px 0' }}
+                  onClick={() => { setMode(tab.id); setError(null); }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>
               {mode === 'login' && 'Sign in to your app workspace'}
               {mode === 'create' && 'Register a new application'}
               {mode === 'join' && 'Join an existing application'}
@@ -192,10 +175,10 @@ export default function AuthPage() {
               {mode === 'login' && 'Use your App ID, email, and password.'}
               {mode === 'create' && 'Creates a unique App ID and stores all config in Firestore.'}
               {mode === 'join' && 'Enter the App ID shared by your team admin.'}
-            </p>
-          </div>
+              </p>
+            </div>
 
-          {error && (
+            {error && (
             <div style={{
               marginBottom: 16, fontSize: 12, padding: '10px 14px', borderRadius: 8,
               background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)',
@@ -203,9 +186,9 @@ export default function AuthPage() {
             }}>
               {error}
             </div>
-          )}
+            )}
 
-          {mode === 'login' && (
+            {mode === 'login' && (
             <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <Field label="Application ID *" icon={KeyRound} value={form.appId} onChange={v => setField('appId', v)} placeholder="APP-1719912345678-ABC123" />
               <Field label="Email *" icon={Mail} type="email" value={form.email} onChange={v => setField('email', v)} placeholder="you@company.com" />
@@ -244,9 +227,9 @@ export default function AuthPage() {
                 {loading ? 'Joining…' : 'Join & Sign In'}
               </button>
             </form>
-          )}
+            )}
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0', opacity: 0.5 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0', opacity: 0.5 }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
             <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Demo</div>
             <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
@@ -265,7 +248,8 @@ export default function AuthPage() {
               Log In as QA Lead (Demo)
             </button>
           </div>
-        </div>
+          </div>
+        </main>
       </div>
     </div>
   );

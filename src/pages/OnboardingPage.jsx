@@ -81,6 +81,8 @@ export default function OnboardingPage() {
   if (!mode) {
     return (
       <div style={{
+        width: '100%',
+        flex: 1,
         minHeight: '100vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'radial-gradient(circle at 20% 30%, rgba(90,80,240,0.08) 0%, transparent 45%), radial-gradient(circle at 80% 70%, rgba(140,50,240,0.08) 0%, transparent 45%), var(--bg-primary)',
@@ -183,6 +185,8 @@ export default function OnboardingPage() {
   if (mode === 'create') {
     return (
       <div style={{
+        width: '100%',
+        flex: 1,
         minHeight: '100vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'radial-gradient(circle at 20% 30%, rgba(90,80,240,0.08) 0%, transparent 45%), var(--bg-primary)',
@@ -259,6 +263,8 @@ export default function OnboardingPage() {
   if (mode === 'join') {
     return (
       <div style={{
+        width: '100%',
+        flex: 1,
         minHeight: '100vh',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         background: 'radial-gradient(circle at 80% 30%, rgba(139,92,246,0.08) 0%, transparent 45%), var(--bg-primary)',
