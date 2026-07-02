@@ -21,8 +21,18 @@ export default function AuthPage() {
         await login(form.email, form.password);
       }
     } catch (err) {
-      // Clean up Firebase error message formats
-      const cleanMsg = err.message.replace('Firebase:', '').replace(/\(auth\/.*\)\.?/, '').trim();
+      const code = err.code || '';
+      const ERROR_MAP = {
+        'auth/operation-not-allowed': 'Email/Password sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.',
+        'auth/email-already-in-use': 'This email is already registered. Try signing in instead.',
+        'auth/weak-password': 'Password must be at least 6 characters.',
+        'auth/invalid-email': 'Please enter a valid email address.',
+        'auth/user-not-found': 'No account found with this email. Try signing up.',
+        'auth/wrong-password': 'Incorrect password. Please try again.',
+        'auth/invalid-credential': 'Invalid credentials. Please check your email and password.',
+        'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
+      };
+      const cleanMsg = ERROR_MAP[code] || err.message.replace('Firebase:', '').replace(/\(auth\/.*\)\.?/, '').trim();
       setError(cleanMsg || 'Authentication failed. Please check your credentials.');
       setLoading(false);
     }
@@ -118,7 +128,11 @@ export default function AuthPage() {
           </div>
 
           {error && (
-            <div className="alert alert-danger" style={{ marginBottom: 18, fontSize: 12 }}>
+            <div style={{ 
+              marginBottom: 18, fontSize: 12, padding: '10px 14px', borderRadius: 8, 
+              background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)',
+              color: '#F87171', lineHeight: 1.5 
+            }}>
               {error}
             </div>
           )}
