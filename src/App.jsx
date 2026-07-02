@@ -22,8 +22,33 @@ import {
 } from './store';
 import './index.css';
 
-// Loading Spinner
-function LoadingScreen() {
+// ─── Tiny auth-resolving spinner (shown < 1s while Firebase SDK initialises) ───
+function AuthSpinner() {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: 'var(--bg-primary)',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: 14, zIndex: 9999,
+    }}>
+      <div style={{
+        width: 48, height: 48,
+        background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))',
+        borderRadius: 14, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', fontSize: 26,
+        boxShadow: '0 0 28px rgba(59,130,246,0.35)',
+        animation: 'spin 2s linear infinite',
+      }}>⚡</div>
+      <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-muted)' }}>
+        Checking session…
+      </div>
+    </div>
+  );
+}
+
+// ─── Data loading spinner (shown briefly while Firestore hydrates) ──────────
+function DataLoadingScreen() {
   return (
     <div style={{
       position: 'fixed', inset: 0,
@@ -41,10 +66,10 @@ function LoadingScreen() {
         animation: 'spin 2s linear infinite',
       }}>⚡</div>
       <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
-        Connecting to Firestore…
+        Loading workspace…
       </div>
       <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-        shipmozo-a2d3f.firebaseapp.com
+        Syncing test data from Firestore
       </div>
       <div style={{ width: 200 }}>
         <div className="progress-bar" style={{ height: 4 }}>
@@ -55,8 +80,9 @@ function LoadingScreen() {
   );
 }
 
-function AppContent() {
-  const { loading, setLoading, isAuthenticated, initAuth } = useAppStore();
+// ─── Phase 2: Data Shell (only mounts AFTER authentication) ─────────────────
+function DataShell() {
+  const [dataReady, setDataReady] = useState(false);
   const [showSeed, setShowSeed] = useState(false);
 
   const repoStore = useRepoStore();
@@ -68,9 +94,6 @@ function AppContent() {
   const teamStore = useTeamStore();
 
   useEffect(() => {
-    // Check SaaS Authentication State
-    initAuth();
-
     // Subscribe all collections to Firestore real-time listeners
     repoStore.subscribe();
     dataStore.subscribe();
@@ -80,15 +103,14 @@ function AppContent() {
     appConfigStore.subscribe();
     teamStore.subscribe();
 
-    // After a brief moment, check if Firestore has data
-    // If modules is empty after 3s, show seed modal
+    // Give Firestore a moment to hydrate, then check for seed data
     const timer = setTimeout(() => {
-      setLoading(false);
+      setDataReady(true);
       const modules = useRepoStore.getState().modules;
       if (modules.length === 0) {
         setShowSeed(true);
       }
-    }, 3000);
+    }, 1500);
 
     return () => {
       clearTimeout(timer);
@@ -102,8 +124,7 @@ function AppContent() {
     };
   }, []);
 
-  if (loading) return <LoadingScreen />;
-  if (!isAuthenticated) return <AuthPage />;
+  if (!dataReady) return <DataLoadingScreen />;
 
   return (
     <>
@@ -134,6 +155,36 @@ function AppContent() {
   );
 }
 
+// ─── Phase 1: Auth Gate (resolves in < 1 second) ───────────────────────────
+function AppContent() {
+  const { isAuthenticated, initAuth } = useAppStore();
+  const [authChecked, setAuthChecked] = useState(false);
+
+  useEffect(() => {
+    // initAuth sets up onAuthStateChanged which fires almost immediately
+    initAuth();
+    // Safety net: if Firebase SDK is slow, stop blocking after 800ms
+    const fallback = setTimeout(() => setAuthChecked(true), 800);
+    const unsub = useAppStore.subscribe((state) => {
+      // As soon as loading flips to false, auth state is resolved
+      if (!state.loading) {
+        setAuthChecked(true);
+        clearTimeout(fallback);
+      }
+    });
+    return () => { unsub(); clearTimeout(fallback); };
+  }, []);
+
+  // Phase 1a: Still resolving auth state (< 1s)
+  if (!authChecked) return <AuthSpinner />;
+
+  // Phase 1b: Not authenticated → show login page instantly
+  if (!isAuthenticated) return <AuthPage />;
+
+  // Phase 1c: Authenticated → mount the data shell
+  return <DataShell />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -143,3 +194,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+

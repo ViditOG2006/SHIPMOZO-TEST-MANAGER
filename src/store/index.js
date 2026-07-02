@@ -59,12 +59,11 @@ export const useAppStore = create((set, get) => ({
   },
 
   login: async (email, password) => {
-    set({ loading: true });
     await signInWithEmailAndPassword(auth, email, password);
+    // onAuthStateChanged observer handles state update
   },
 
   signup: async (email, password, name, orgName) => {
-    set({ loading: true });
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     
@@ -77,13 +76,13 @@ export const useAppStore = create((set, get) => ({
       role: 'QA Lead',
       tenantId: cred.user.uid
     });
+    // onAuthStateChanged observer handles state update
   },
 
   logout: async () => {
-    set({ loading: true });
     set({ user: null, isAuthenticated: false, tenantId: null });
     await signOut(auth);
-    set({ loading: false });
+    // onAuthStateChanged observer handles final state
   },
 
   loginDemo: (role) => {
