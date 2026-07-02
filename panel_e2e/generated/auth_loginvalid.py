@@ -17,6 +17,22 @@ async def run_auth_loginvalid_flow(page: Page, form: dict[str, Any], **kwargs) -
     error_msg: str | None = None
     
     try:
+        from shipmozo_login import is_logged_in
+        if await is_logged_in(page):
+            steps.append("Already logged in — verified active session")
+            ui_text = ""
+            try:
+                ui_text = await page.inner_text("body")
+            except Exception:
+                pass
+            return {
+                "ok": True,
+                "stepsRun": steps,
+                "pageUrl": page.url,
+                "uiText": ui_text[:4000],
+                "error": None
+            }
+
         email = os.getenv("SHIPMOZO_EMAIL", "").strip()
         password = os.getenv("SHIPMOZO_PASSWORD", "").strip()
         
