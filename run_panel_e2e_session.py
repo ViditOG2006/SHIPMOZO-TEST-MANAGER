@@ -280,18 +280,19 @@ async def run_session(run_id: str, scenarios: list[dict], *, nav_script_path: st
                         result["video"] = vid
 
             else:
-
-                result = {
-
-                    "ok": False,
-
-                    "error": f"Unsupported e2e flow: {flow or '(missing)'}",
-
-                    "stepsRun": [],
-
-                    "pageUrl": page.url,
-
-                }
+                try:
+                    import importlib
+                    safe_flow = "".join([c if c.isalnum() or c == "_" else "_" for c in flow]).lower()
+                    mod = importlib.import_module(f"panel_e2e.generated.{safe_flow}")
+                    dynamic_runner = getattr(mod, f"run_{safe_flow}_flow")
+                    result = await dynamic_runner(page, form, scenario_id=scenario_id)
+                except Exception as exc:
+                    result = {
+                        "ok": False,
+                        "error": f"Unsupported e2e flow: {flow or '(missing)'} (Dynamic load error: {exc})",
+                        "stepsRun": [],
+                        "pageUrl": page.url,
+                    }
 
 
 
