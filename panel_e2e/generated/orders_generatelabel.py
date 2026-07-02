@@ -37,12 +37,8 @@ async def run_orders_generatelabel_flow(page: Page, form: dict[str, Any], **kwar
         if not ref:
             steps.append("No order ref provided — taking first order from list")
             await page.wait_for_timeout(1000)
-            first_row = page.locator("table tbody tr").first
-            await first_row.wait_for(state="visible", timeout=5000)
-            ref_cell = first_row.locator("td").first
-            ref = await ref_cell.inner_text()
-            ref = ref.strip()
-            steps.append(f"Selected first order: {ref}")
+            row = page.locator("table tbody tr").first
+            await row.wait_for(state="visible", timeout=5000)
         else:
             found = await search_new_orders(page, ref)
             if not found:
@@ -54,11 +50,9 @@ async def run_orders_generatelabel_flow(page: Page, form: dict[str, Any], **kwar
                     "error": f"Order {ref} not found in New Orders list",
                 }
             steps.append(f"Found order {ref}")
-        
-        await dismiss_blocking_overlays(page)
-        
-        row = page.locator(f"table tbody tr:has-text('{ref}')").first
-        await row.wait_for(state="visible", timeout=5000)
+            await dismiss_blocking_overlays(page)
+            row = page.locator(f"table tbody tr:has-text('{ref}')").first
+            await row.wait_for(state="visible", timeout=5000)
         
         generate_btn = row.get_by_role("button", name=re.compile(r"generate|label", re.I))
         if not await generate_btn.count():

@@ -37,12 +37,51 @@ function FailureDetail({ step }) {
         </div>
       </div>
       <div style={{ padding: '10px 14px', background: 'var(--bg-card)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{ width: 60, height: 40, background: 'var(--bg-input)', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'var(--text-muted)' }}>📸</div>
+        <div 
+          style={{ 
+            width: 60, 
+            height: 40, 
+            background: 'var(--bg-input)', 
+            borderRadius: 4, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            overflow: 'hidden', 
+            cursor: step.screenshot ? 'pointer' : 'default',
+            fontSize: 11,
+            color: 'var(--text-muted)'
+          }}
+          onClick={() => step.screenshot && window.open(step.screenshot, '_blank')}
+        >
+          {step.screenshot ? (
+            <img 
+              src={step.screenshot} 
+              alt="Preview" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.parentElement.innerHTML = '📸';
+              }}
+            />
+          ) : (
+            '📸'
+          )}
+        </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 12, fontWeight: 600 }}>Screenshot available</div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Captured at point of failure</div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{step.screenshot ? 'Captured at point of failure' : 'No screenshot captured'}</div>
         </div>
-        <button className="btn btn-secondary btn-sm"><Download size={12} /> Download</button>
+        <button 
+          className="btn btn-secondary btn-sm"
+          disabled={!step.screenshot}
+          onClick={() => {
+            if (step.screenshot) {
+              window.open(step.screenshot, '_blank');
+            }
+          }}
+        >
+          <Download size={12} /> Download
+        </button>
       </div>
     </div>
   );
