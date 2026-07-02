@@ -2,7 +2,7 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAppStore, useAppConfigStore } from '../store';
 import {
   LayoutDashboard, FolderOpen, Database, GitBranch,
-  Play, Globe, Activity, BarChart3, FileText, ChevronRight,
+  Play, Globe, Activity, FileText, ChevronRight,
   Layers, Users
 } from 'lucide-react';
 
@@ -20,7 +20,6 @@ const NAV = [
   { to: '/execute', label: 'Execution Center', icon: Play, roles: ['QA Engineer','QA Lead','Product Manager','Developer'] },
   { section: 'Insights' },
   { to: '/monitor', label: 'Live Monitor', icon: Activity, roles: ['QA Engineer','QA Lead','Product Manager','Developer','Management'] },
-  { to: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['QA Engineer','QA Lead','Product Manager','Management'] },
   { to: '/reports', label: 'Reports', icon: FileText, roles: ['QA Engineer','QA Lead','Product Manager','Developer','Management'] },
 ];
 

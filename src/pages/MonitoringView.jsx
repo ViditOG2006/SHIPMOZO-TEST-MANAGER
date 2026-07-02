@@ -24,10 +24,11 @@ export default function MonitoringView() {
   const { id } = useParams();
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const { executions: rawExecs, abortExecution, activeExecutionId } = useExecutionStore();
   const { environments } = useEnvStore();
 
-  const executions = filterByActiveApp(rawExecs, activeAppId);
+  const executions = filterByActiveApp(rawExecs, activeAppId, userAppIds);
 
   const [selectedId, setSelectedId] = useState(id || activeExecutionId || null);
   const [, forceRender] = useState(0);

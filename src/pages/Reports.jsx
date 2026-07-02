@@ -91,10 +91,11 @@ function FailureDetail({ step }) {
 export default function Reports() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const { executions: rawExecs } = useExecutionStore();
   const { environments } = useEnvStore();
 
-  const executions = filterByActiveApp(rawExecs, activeAppId);
+  const executions = filterByActiveApp(rawExecs, activeAppId, userAppIds);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterType, setFilterType] = useState('All');
   const [expandedExec, setExpandedExec] = useState(null);

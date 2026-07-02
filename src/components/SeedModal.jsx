@@ -53,7 +53,7 @@ export default function SeedModal({ onDone }) {
                   { icon: '🗄️', label: '6 Data Sets', sub: 'LoginData, OrderData, WalletData, etc.' },
                   { icon: '⛓️', label: '2 Workflows', sub: 'Full Order Journey, Wallet Recharge & Order' },
                   { icon: '🌐', label: '4 Environments', sub: 'Local, QA, UAT, Production' },
-                  { icon: '📊', label: '15 Past Executions', sub: 'Historical run data for analytics' },
+                  { icon: '📊', label: '15 Past Executions', sub: 'Historical run data for reports' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 12px', background: 'var(--bg-input)', borderRadius: 8 }}>
                     <span style={{ fontSize: 20 }}>{item.icon}</span>

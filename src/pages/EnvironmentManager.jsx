@@ -79,8 +79,9 @@ export default function EnvironmentManager() {
   const rawEnvironments = useEnvStore(s => s.environments);
   const { updateEnvironment } = useEnvStore();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const role = useAppStore(s => s.role);
-  const environments = filterByActiveApp(rawEnvironments, activeAppId);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId, userAppIds);
   const [editEnv, setEditEnv] = useState(null);
 
   const isLocked = (env) => env.restricted && LOCKED_ROLES.includes(role);

@@ -6,27 +6,13 @@ import {
 } from 'lucide-react';
 import { useExecutionStore, useRepoStore, useAppStore, useAppConfigStore } from '../store';
 import { CreateAppModal, JoinAppModal } from '../components/AppWorkspaceModals';
-import { filterByActiveApp } from '../utils/appScope';
-import { buildPassRateTrend } from '../utils/executionAnalytics';
-import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
-
-function MiniTrend({ data, color }) {
-  return (
-    <ResponsiveContainer width="100%" height={40}>
-      <LineChart data={data}>
-        <Line type="monotone" dataKey="passRate" stroke={color} strokeWidth={2} dot={false} />
-        <Tooltip
-          contentStyle={{ background: 'var(--bg-card)', border: '1px solid var(--border-soft)', borderRadius: 8, fontSize: 11 }}
-          formatter={(v) => [`${v}%`, 'Pass Rate']}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
+import { filterByActiveApp, getScopedAppId } from '../utils/appScope';
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
+  const scopedAppId = getScopedAppId(activeAppId, userAppIds);
   const setActiveAppId = useAppStore(s => s.setActiveAppId);
   const user = useAppStore(s => s.user);
   const { applications } = useAppConfigStore();
@@ -38,9 +24,9 @@ export default function Dashboard() {
   const rawTestCases = useRepoStore(s => s.testCases);
   const role = useAppStore(s => s.role);
 
-  const executions = filterByActiveApp(rawExecutions, activeAppId);
-  const modules = filterByActiveApp(rawModules, activeAppId);
-  const testCases = filterByActiveApp(rawTestCases, activeAppId);
+  const executions = filterByActiveApp(rawExecutions, activeAppId, userAppIds);
+  const modules = filterByActiveApp(rawModules, activeAppId, userAppIds);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId, userAppIds);
 
   const recent = executions.slice(0, 6);
   const totalRuns = executions.length;
@@ -48,8 +34,6 @@ export default function Dashboard() {
   const failed = executions.filter(e => e.status === 'FAILED').length;
   const running = executions.filter(e => e.status === 'RUNNING').length;
   const passRate = totalRuns ? Math.round((passed / totalRuns) * 100) : 0;
-  const trendData = buildPassRateTrend(executions, 30);
-  const todayPassRate = trendData[trendData.length - 1]?.passRate ?? 0;
 
   const statusColor = { PASSED: 'var(--success)', FAILED: 'var(--danger)', RUNNING: 'var(--warning)', QUEUED: 'var(--text-muted)', ABORTED: 'var(--text-muted)' };
   const statusBadge = { PASSED: 'badge-green', FAILED: 'badge-red', RUNNING: 'badge-yellow', QUEUED: 'badge-gray', ABORTED: 'badge-gray' };
@@ -167,7 +151,8 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* KPI Row */}
+      {/* KPI Row — only when user has an active app workspace */}
+      {scopedAppId ? (
       <div className="kpi-grid" style={{ marginBottom: 28 }}>
         <div className="kpi-card">
           <div className="kpi-icon" style={{ background: 'var(--accent-blue-dim)' }}>
@@ -215,34 +200,26 @@ export default function Dashboard() {
           <div className="kpi-card-glow" style={{ background: 'var(--warning)' }} />
         </div>
       </div>
-
-      <div className="two-col" style={{ marginBottom: 24 }}>
-        {/* Trend */}
-        <div className="card">
-          <div className="section-header">
-            <div className="section-title"><TrendingUp size={16} color="var(--accent-blue)" /> Pass Rate Trend (30d)</div>
-          </div>
-          <MiniTrend data={trendData} color="var(--accent-blue)" />
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
-            <span>30 days ago</span>
-            <span style={{ color: totalRuns ? 'var(--success)' : 'var(--text-muted)', fontWeight: 600 }}>
-              {totalRuns ? `${todayPassRate}% today` : 'No runs yet'}
-            </span>
-            <span>Today</span>
-          </div>
+      ) : (
+        <div className="card" style={{ marginBottom: 28, textAlign: 'center', padding: 32 }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 14, margin: 0 }}>
+            Create or join an application above to see runs, test cases, and execution history.
+          </p>
         </div>
+      )}
 
-        {/* Quick Actions */}
+      {scopedAppId && (
+      <div style={{ marginBottom: 24 }}>
         <div className="card">
           <div className="section-header">
             <div className="section-title"><Zap size={16} color="var(--accent-blue)" /> Quick Actions</div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
             {[
               { label: 'Run Smoke Suite', desc: '10 tests · ~2 min', icon: '🚀', to: '/execute', color: 'var(--accent-blue)' },
               { label: 'Build Workflow', desc: 'Chain test steps', icon: '⚙️', to: '/workflows', color: 'var(--accent-purple)' },
-              { label: 'View Analytics', desc: 'Trends & insights', icon: '📊', to: '/analytics', color: 'var(--success)' },
               { label: 'Manage Test Data', desc: 'Edit datasets', icon: '🗄️', to: '/test-data', color: 'var(--warning)' },
+              { label: 'View Reports', desc: 'Execution history', icon: '📋', to: '/reports', color: 'var(--success)' },
             ].map(a => (
               <button key={a.label} className="btn btn-secondary" style={{ justifyContent: 'flex-start', gap: 12, padding: '10px 14px' }}
                 onClick={() => navigate(a.to)}>
@@ -257,8 +234,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      )}
 
-      {/* Recent Executions */}
+      {scopedAppId && (
       <div className="table-wrapper">
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="section-title"><Activity size={16} color="var(--accent-blue)" /> Recent Executions</div>
@@ -316,6 +294,7 @@ export default function Dashboard() {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }

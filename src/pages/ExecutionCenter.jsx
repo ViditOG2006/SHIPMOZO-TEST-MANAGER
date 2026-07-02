@@ -29,15 +29,16 @@ function WizardSteps({ steps, current }) {
 function IndividualExec() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const rawModules = useRepoStore(s => s.modules);
   const rawTestCases = useRepoStore(s => s.testCases);
   const rawEnvironments = useEnvStore(s => s.environments);
   const rawDataSets = useDataStore(s => s.dataSets);
   const { triggerExecution } = useExecutionStore();
-  const modules = filterByActiveApp(rawModules, activeAppId);
-  const testCases = filterByActiveApp(rawTestCases, activeAppId);
-  const environments = filterByActiveApp(rawEnvironments, activeAppId);
-  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
+  const modules = filterByActiveApp(rawModules, activeAppId, userAppIds);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId, userAppIds);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId, userAppIds);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId, userAppIds);
   const [step, setStep] = useState(0);
   const [sel, setSel] = useState({ moduleId: '', testCaseId: '', envId: '', dsId: '' });
 
@@ -166,12 +167,13 @@ function IndividualExec() {
 function SuiteExec() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const rawSuites = useRepoStore(s => s.testSuites);
   const rawEnvironments = useEnvStore(s => s.environments);
   const rawDataSets = useDataStore(s => s.dataSets);
   const { triggerExecution } = useExecutionStore();
-  const environments = filterByActiveApp(rawEnvironments, activeAppId);
-  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId, userAppIds);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId, userAppIds);
   const [sel, setSel] = useState({ suiteId: '', envId: '', dsId: '' });
   const [step, setStep] = useState(0);
 
@@ -181,7 +183,7 @@ function SuiteExec() {
     }
   }, [environments, sel.envId]);
 
-  const testSuites = filterByActiveApp(rawSuites, activeAppId);
+  const testSuites = filterByActiveApp(rawSuites, activeAppId, userAppIds);
 
   const selSuite = testSuites.find(s => s.id === sel.suiteId);
 
@@ -256,12 +258,13 @@ function SuiteExec() {
 function WorkflowExec() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const { workflows: rawWorkflows } = useWorkflowStore();
   const { environments } = useEnvStore();
   const { triggerExecution } = useExecutionStore();
   const [selId, setSelId] = useState('');
 
-  const workflows = filterByActiveApp(rawWorkflows, activeAppId);
+  const workflows = filterByActiveApp(rawWorkflows, activeAppId, userAppIds);
 
   const selWF = workflows.find(w => w.id === selId);
 
@@ -303,11 +306,12 @@ function WorkflowExec() {
 function ModuleExec() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const rawModules = useRepoStore(s => s.modules);
   const rawTestCases = useRepoStore(s => s.testCases);
   const rawEnvironments = useEnvStore(s => s.environments);
   const { triggerExecution } = useExecutionStore();
-  const environments = filterByActiveApp(rawEnvironments, activeAppId);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId, userAppIds);
   const [sel, setSel] = useState({ modId: '', envId: '' });
 
   useEffect(() => {
@@ -316,8 +320,8 @@ function ModuleExec() {
     }
   }, [environments, sel.envId]);
 
-  const modules = filterByActiveApp(rawModules, activeAppId);
-  const testCases = filterByActiveApp(rawTestCases, activeAppId);
+  const modules = filterByActiveApp(rawModules, activeAppId, userAppIds);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId, userAppIds);
 
   const launch = async () => {
     if (!sel.modId) return;

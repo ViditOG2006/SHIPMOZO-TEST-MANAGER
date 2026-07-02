@@ -141,12 +141,13 @@ function TestCaseModal({ tc, modules, onSave, onClose }) {
 
 export default function TestRepository() {
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const rawModules = useRepoStore(s => s.modules);
   const rawTestCases = useRepoStore(s => s.testCases);
   const { addModule, updateModule, deleteModule, addTestCase, updateTestCase, deleteTestCase } = useRepoStore();
 
-  const modules = filterByActiveApp(rawModules, activeAppId);
-  const testCases = filterByActiveApp(rawTestCases, activeAppId);
+  const modules = filterByActiveApp(rawModules, activeAppId, userAppIds);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId, userAppIds);
 
   const [expandedModule, setExpandedModule] = useState(null);
   const [search, setSearch] = useState('');

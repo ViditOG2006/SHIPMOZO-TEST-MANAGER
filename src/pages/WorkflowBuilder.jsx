@@ -80,17 +80,18 @@ function WorkflowModal({ wf, onSave, onClose }) {
 export default function WorkflowBuilder() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const { workflows: rawWorkflows, addWorkflow, updateWorkflow, deleteWorkflow, cloneWorkflow, updateSteps } = useWorkflowStore();
   const { testCases: rawTestCases, modules: rawModules } = useRepoStore();
   const { environments: rawEnvironments } = useEnvStore();
   const { dataSets: rawDataSets } = useDataStore();
   const { triggerExecution } = useExecutionStore();
 
-  const workflows = filterByActiveApp(rawWorkflows, activeAppId);
-  const testCases = filterByActiveApp(rawTestCases, activeAppId);
-  const modules = filterByActiveApp(rawModules, activeAppId);
-  const environments = filterByActiveApp(rawEnvironments, activeAppId);
-  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
+  const workflows = filterByActiveApp(rawWorkflows, activeAppId, userAppIds);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId, userAppIds);
+  const modules = filterByActiveApp(rawModules, activeAppId, userAppIds);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId, userAppIds);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId, userAppIds);
 
   const [selected, setSelected] = useState(null);
   const [wfModal, setWfModal] = useState(null);

@@ -9,6 +9,7 @@ import {
   createUserWithEmailAndPassword, signOut, updateProfile 
 } from 'firebase/auth';
 import { auth } from '../firebase/config';
+import { clearSessionCache } from '../utils/sessionCache';
 
 // ─── App / Loading Store ───────────────────────────────────────
 export const useAppStore = create((set, get) => ({
@@ -24,24 +25,32 @@ export const useAppStore = create((set, get) => ({
   setLoading: (v) => set({ loading: v }),
   seeded: false,
   setSeeded: (v) => set({ seeded: v }),
-  activeAppId: localStorage.getItem('activeAppId') || '',
+  activeAppId: '',
   setActiveAppId: (activeAppId) => {
-    localStorage.setItem('activeAppId', activeAppId);
+    if (activeAppId) localStorage.setItem('activeAppId', activeAppId);
+    else localStorage.removeItem('activeAppId');
     set({ activeAppId });
   },
   user: null,
   isAuthenticated: false,
   tenantId: null,
   userAppIds: [],
+  _sessionUid: null,
 
   _applySession: (firebaseUser, workspace, userDoc) => {
+    if (get()._sessionUid !== firebaseUser.uid) {
+      resetClientDataStores();
+      clearSessionCache();
+    }
+
     const appIds = workspace?.appIds || userDoc?.appIds || [];
-    const storedAppId = localStorage.getItem('activeAppId') || '';
     let activeAppId = '';
     if (appIds.length) {
+      const storedAppId = localStorage.getItem('activeAppId') || '';
+      const preferred = workspace?.activeAppId || userDoc?.activeAppId || '';
       activeAppId = appIds.includes(storedAppId)
         ? storedAppId
-        : (workspace?.activeAppId || userDoc?.activeAppId || appIds[0]);
+        : (appIds.includes(preferred) ? preferred : appIds[0]);
       localStorage.setItem('activeAppId', activeAppId);
       localStorage.setItem('onboarded', 'true');
     } else {
@@ -60,6 +69,7 @@ export const useAppStore = create((set, get) => ({
       tenantId: activeAppId || firebaseUser.uid,
       userAppIds: appIds,
       activeAppId,
+      _sessionUid: firebaseUser.uid,
       loading: false,
     });
   },
@@ -75,8 +85,9 @@ export const useAppStore = create((set, get) => ({
       } else {
         // Only clear if not in demo mode
         if (get().user?.uid !== 'demo-uid') {
-          localStorage.removeItem('activeAppId');
-          set({ user: null, isAuthenticated: false, tenantId: null, userAppIds: [], activeAppId: '', loading: false });
+          clearSessionCache();
+          resetClientDataStores();
+          set({ user: null, isAuthenticated: false, tenantId: null, userAppIds: [], activeAppId: '', _sessionUid: null, loading: false });
         } else {
           set({ loading: false });
         }
@@ -85,11 +96,17 @@ export const useAppStore = create((set, get) => ({
   },
 
   login: async (email, password) => {
+    clearSessionCache();
+    resetClientDataStores();
+    set({ activeAppId: '', userAppIds: [], user: null, _sessionUid: null });
     await signInWithEmailAndPassword(auth, email, password);
     localStorage.setItem('onboarded', 'true');
   },
 
   signup: async (email, password, name) => {
+    clearSessionCache();
+    resetClientDataStores();
+    set({ activeAppId: '', userAppIds: [], user: null, _sessionUid: null });
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
     const uid = cred.user.uid;
@@ -112,13 +129,13 @@ export const useAppStore = create((set, get) => ({
     });
 
     localStorage.setItem('onboarded', 'true');
-    set({ userAppIds: [] });
+    set({ userAppIds: [], activeAppId: '' });
   },
 
   logout: async () => {
-    localStorage.removeItem('onboarded');
-    localStorage.removeItem('activeAppId');
-    set({ user: null, isAuthenticated: false, tenantId: null, userAppIds: [], activeAppId: '' });
+    clearSessionCache();
+    resetClientDataStores();
+    set({ user: null, isAuthenticated: false, tenantId: null, userAppIds: [], activeAppId: '', _sessionUid: null });
     await signOut(auth);
     // onAuthStateChanged observer handles final state
   },
@@ -554,3 +571,14 @@ export const useTeamStore = create((set, get) => ({
     await deleteFireDoc(COLLECTIONS.TEAM, id);
   }
 }));
+
+/** Wipe in-memory Firestore mirrors so a new session never flashes the previous account's data. */
+export function resetClientDataStores() {
+  useRepoStore.setState({ modules: [], testCases: [], testSuites: [] });
+  useDataStore.setState({ dataSets: [] });
+  useWorkflowStore.setState({ workflows: [] });
+  useEnvStore.setState({ environments: [] });
+  useExecutionStore.setState({ executions: [], activeExecutionId: null });
+  useAppConfigStore.setState({ applications: [] });
+  useTeamStore.setState({ members: [] });
+}

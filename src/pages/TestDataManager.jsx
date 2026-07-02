@@ -44,10 +44,11 @@ const ENV_COLORS = { QA: 'badge-blue', UAT: 'badge-yellow', Local: 'badge-purple
 
 export default function TestDataManager() {
   const activeAppId = useAppStore(s => s.activeAppId);
+  const userAppIds = useAppStore(s => s.userAppIds);
   const rawDataSets = useDataStore(s => s.dataSets);
   const { addDataSet, deleteDataSet, updateDataSet, addEntry, updateEntry, deleteEntry, importEntries } = useDataStore();
 
-  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId, userAppIds);
 
   const [selected, setSelected] = useState(null);
   const [showNew, setShowNew] = useState(false);

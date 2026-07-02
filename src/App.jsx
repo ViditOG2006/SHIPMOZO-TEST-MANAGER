@@ -10,7 +10,6 @@ import WorkflowBuilder from './pages/WorkflowBuilder';
 import ExecutionCenter from './pages/ExecutionCenter';
 import EnvironmentManager from './pages/EnvironmentManager';
 import MonitoringView from './pages/MonitoringView';
-import Analytics from './pages/Analytics';
 import Reports from './pages/Reports';
 import ApplicationManager from './pages/ApplicationManager';
 import TeamManager from './pages/TeamManager';
@@ -21,7 +20,7 @@ import {
   useAppConfigStore, useTeamStore
 } from './store';
 import './index.css';
-import { filterByActiveApp } from './utils/appScope';
+import { filterByActiveApp, getScopedAppId } from './utils/appScope';
 
 // ─── Tiny auth-resolving spinner (shown < 1s while Firebase SDK initialises) ───
 function AuthSpinner() {
@@ -105,11 +104,15 @@ function DataShell() {
   }, [userAppIds, refreshApplicationsFilter]);
 
   useEffect(() => {
+    if (!userAppIds.length) {
+      if (activeAppId) setActiveAppId('');
+      return;
+    }
     if (!applications.length) return;
     if (!activeAppId || !applications.some(a => a.id === activeAppId)) {
       setActiveAppId(applications[0].id);
     }
-  }, [applications, activeAppId, setActiveAppId]);
+  }, [applications, activeAppId, setActiveAppId, userAppIds]);
 
   useEffect(() => {
     // Subscribe all collections to Firestore real-time listeners
@@ -139,13 +142,14 @@ function DataShell() {
   }, []);
 
   useEffect(() => {
-    if (!dataReady || !activeAppId) {
+    const scopedAppId = getScopedAppId(activeAppId, userAppIds);
+    if (!dataReady || !scopedAppId) {
       setShowSeed(false);
       return;
     }
-    const modules = filterByActiveApp(allModules, activeAppId);
+    const modules = filterByActiveApp(allModules, activeAppId, userAppIds);
     setShowSeed(modules.length === 0);
-  }, [dataReady, activeAppId, allModules]);
+  }, [dataReady, activeAppId, userAppIds, allModules]);
 
   if (!dataReady) return <DataLoadingScreen />;
 
@@ -167,7 +171,6 @@ function DataShell() {
             <Route path="/environments" element={<EnvironmentManager />} />
             <Route path="/monitor" element={<MonitoringView />} />
             <Route path="/monitor/:id" element={<MonitoringView />} />
-            <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/applications" element={<ApplicationManager />} />
             <Route path="/team" element={<TeamManager />} />

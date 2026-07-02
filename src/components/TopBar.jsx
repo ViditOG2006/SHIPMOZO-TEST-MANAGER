@@ -11,7 +11,6 @@ const BREADCRUMB_MAP = {
   '/execute': 'Execution Center',
   '/environments': 'Environments',
   '/monitor': 'Live Monitor',
-  '/analytics': 'Analytics',
   '/reports': 'Reports',
   '/applications': 'Application Registry',
   '/team': 'Team Members',
