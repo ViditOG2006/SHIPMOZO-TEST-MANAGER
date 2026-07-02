@@ -75,4 +75,5 @@ export const COLLECTIONS = {
   EXECUTIONS: 'executions',
   APPLICATIONS: 'applications',
   TEAM: 'team',
+  WORKSPACES: 'workspaces',
 };

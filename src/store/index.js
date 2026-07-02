@@ -80,12 +80,14 @@ export const useAppStore = create((set, get) => ({
   },
 
   logout: async () => {
+    localStorage.removeItem('onboarded');
     set({ user: null, isAuthenticated: false, tenantId: null });
     await signOut(auth);
     // onAuthStateChanged observer handles final state
   },
 
   loginDemo: (role) => {
+    localStorage.setItem('onboarded', 'true');
     set({ 
       user: { 
         uid: 'demo-uid', 

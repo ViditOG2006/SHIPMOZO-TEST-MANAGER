@@ -15,6 +15,7 @@ import Reports from './pages/Reports';
 import ApplicationManager from './pages/ApplicationManager';
 import TeamManager from './pages/TeamManager';
 import AuthPage from './pages/AuthPage';
+import OnboardingPage from './pages/OnboardingPage';
 import {
   useRepoStore, useDataStore, useWorkflowStore,
   useEnvStore, useExecutionStore, useAppStore,
@@ -157,8 +158,9 @@ function DataShell() {
 
 // ─── Phase 1: Auth Gate (resolves in < 1 second) ───────────────────────────
 function AppContent() {
-  const { isAuthenticated, initAuth } = useAppStore();
+  const { isAuthenticated, initAuth, user } = useAppStore();
   const [authChecked, setAuthChecked] = useState(false);
+  const [onboarded, setOnboarded] = useState(() => localStorage.getItem('onboarded') === 'true');
 
   useEffect(() => {
     // initAuth sets up onAuthStateChanged which fires almost immediately
@@ -175,13 +177,24 @@ function AppContent() {
     return () => { unsub(); clearTimeout(fallback); };
   }, []);
 
+  // Listen for onboarding completion (localStorage change from OnboardingPage)
+  useEffect(() => {
+    const check = () => setOnboarded(localStorage.getItem('onboarded') === 'true');
+    window.addEventListener('storage', check);
+    const interval = setInterval(check, 500);
+    return () => { window.removeEventListener('storage', check); clearInterval(interval); };
+  }, []);
+
   // Phase 1a: Still resolving auth state (< 1s)
   if (!authChecked) return <AuthSpinner />;
 
   // Phase 1b: Not authenticated → show login page instantly
   if (!isAuthenticated) return <AuthPage />;
 
-  // Phase 1c: Authenticated → mount the data shell
+  // Phase 1c: Authenticated but not onboarded → show workspace setup
+  if (!onboarded && user?.uid !== 'demo-uid') return <OnboardingPage />;
+
+  // Phase 1d: Authenticated + onboarded → mount the data shell
   return <DataShell />;
 }
 
@@ -194,4 +207,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
