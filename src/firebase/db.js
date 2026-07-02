@@ -73,4 +73,6 @@ export const COLLECTIONS = {
   WORKFLOWS: 'workflows',
   ENVIRONMENTS: 'environments',
   EXECUTIONS: 'executions',
+  APPLICATIONS: 'applications',
+  TEAM: 'team',
 };

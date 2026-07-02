@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Download, Upload, X, Save, FileText, Database } from 'lucide-react';
-import { useDataStore } from '../store';
+import { useDataStore, useAppStore } from '../store';
 import Papa from 'papaparse';
 
 function NewDataSetModal({ onSave, onClose }) {
@@ -42,13 +42,30 @@ function NewDataSetModal({ onSave, onClose }) {
 const ENV_COLORS = { QA: 'badge-blue', UAT: 'badge-yellow', Local: 'badge-purple', Production: 'badge-red' };
 
 export default function TestDataManager() {
-  const { dataSets, addDataSet, deleteDataSet, updateDataSet, addEntry, updateEntry, deleteEntry, importEntries } = useDataStore();
-  const [selected, setSelected] = useState(dataSets[0]?.id || null);
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const rawDataSets = useDataStore(s => s.dataSets);
+  const { addDataSet, deleteDataSet, updateDataSet, addEntry, updateEntry, deleteEntry, importEntries } = useDataStore();
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const dataSets = rawDataSets.filter(matchesApp);
+
+  const [selected, setSelected] = useState(null);
   const [showNew, setShowNew] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null); // idx
   const [newEntry, setNewEntry] = useState({ key: '', value: '' });
   const [addingEntry, setAddingEntry] = useState(false);
   const fileRef = useRef();
+
+  // Sync selection
+  useEffect(() => {
+    if (dataSets.length > 0) {
+      if (!selected || !dataSets.some(d => d.id === selected)) {
+        setSelected(dataSets[0].id);
+      }
+    } else {
+      setSelected(null);
+    }
+  }, [activeAppId, rawDataSets, selected]);
 
   const activeDS = dataSets.find(d => d.id === selected);
 
@@ -220,7 +237,14 @@ export default function TestDataManager() {
 
       {showNew && (
         <NewDataSetModal
-          onSave={(data) => { addDataSet(data); setShowNew(false); setTimeout(() => setSelected(useDataStore.getState().dataSets.slice(-1)[0]?.id), 50); }}
+          onSave={(data) => { 
+            addDataSet({ ...data, appId: activeAppId }); 
+            setShowNew(false); 
+            setTimeout(() => {
+              const last = useDataStore.getState().dataSets.slice(-1)[0];
+              if (last) setSelected(last.id);
+            }, 100); 
+          }}
           onClose={() => setShowNew(false)}
         />
       )}

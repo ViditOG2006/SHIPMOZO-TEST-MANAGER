@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Play, ChevronRight, Check, Zap } from 'lucide-react';
-import { useRepoStore, useDataStore, useWorkflowStore, useEnvStore, useExecutionStore } from '../store';
+import { useRepoStore, useDataStore, useWorkflowStore, useEnvStore, useExecutionStore, useAppStore } from '../store';
 import { useNavigate } from 'react-router-dom';
 
 const TABS = ['Individual', 'Suite', 'Workflow', 'Module'];
@@ -27,19 +27,25 @@ function WizardSteps({ steps, current }) {
 
 function IndividualExec() {
   const navigate = useNavigate();
-  const { modules, testCases } = useRepoStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const rawModules = useRepoStore(s => s.modules);
+  const rawTestCases = useRepoStore(s => s.testCases);
   const { environments } = useEnvStore();
   const { dataSets } = useDataStore();
   const { triggerExecution } = useExecutionStore();
   const [step, setStep] = useState(0);
   const [sel, setSel] = useState({ moduleId: '', testCaseId: '', envId: environments[1]?.id, dsId: dataSets[0]?.id });
 
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const modules = rawModules.filter(matchesApp);
+  const testCases = rawTestCases.filter(matchesApp);
+
   const modTCs = testCases.filter(tc => tc.moduleId === sel.moduleId);
   const selTC = testCases.find(tc => tc.id === sel.testCaseId);
 
   const launch = async () => {
     if (!sel.testCaseId) return;
-    const id = await triggerExecution({ type: 'INDIVIDUAL', referenceId: sel.testCaseId, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: [sel.testCaseId], label: selTC?.name });
+    const id = await triggerExecution({ type: 'INDIVIDUAL', referenceId: sel.testCaseId, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: [sel.testCaseId], label: selTC?.name, appId: activeAppId });
     navigate('/monitor/' + id);
   };
 
@@ -149,18 +155,22 @@ function IndividualExec() {
 
 function SuiteExec() {
   const navigate = useNavigate();
-  const { testSuites } = useRepoStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const rawSuites = useRepoStore(s => s.testSuites);
   const { environments } = useEnvStore();
   const { dataSets } = useDataStore();
   const { triggerExecution } = useExecutionStore();
   const [sel, setSel] = useState({ suiteId: '', envId: environments[1]?.id, dsId: '' });
   const [step, setStep] = useState(0);
 
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const testSuites = rawSuites.filter(matchesApp);
+
   const selSuite = testSuites.find(s => s.id === sel.suiteId);
 
   const launch = async () => {
     if (!selSuite) return;
-    const id = await triggerExecution({ type: 'SUITE', referenceId: selSuite.id, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: selSuite.testCaseIds, label: selSuite.name });
+    const id = await triggerExecution({ type: 'SUITE', referenceId: selSuite.id, environmentId: sel.envId, dataSetId: sel.dsId, testCaseIds: selSuite.testCaseIds, label: selSuite.name, appId: activeAppId });
     navigate('/monitor/' + id);
   };
 
@@ -228,16 +238,20 @@ function SuiteExec() {
 
 function WorkflowExec() {
   const navigate = useNavigate();
-  const { workflows } = useWorkflowStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const { workflows: rawWorkflows } = useWorkflowStore();
   const { environments } = useEnvStore();
   const { triggerExecution } = useExecutionStore();
   const [selId, setSelId] = useState('');
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const workflows = rawWorkflows.filter(matchesApp);
 
   const selWF = workflows.find(w => w.id === selId);
 
   const launch = async () => {
     if (!selWF) return;
-    const id = await triggerExecution({ type: 'WORKFLOW', referenceId: selWF.id, environmentId: selWF.environment, dataSetId: selWF.dataSetId, testCaseIds: selWF.steps.map(s => s.testCaseId), label: selWF.name, stopOnFailure: selWF.stopOnFailure });
+    const id = await triggerExecution({ type: 'WORKFLOW', referenceId: selWF.id, environmentId: selWF.environment, dataSetId: selWF.dataSetId, testCaseIds: selWF.steps.map(s => s.testCaseId), label: selWF.name, stopOnFailure: selWF.stopOnFailure, appId: activeAppId });
     navigate('/monitor/' + id);
   };
 
@@ -272,16 +286,22 @@ function WorkflowExec() {
 
 function ModuleExec() {
   const navigate = useNavigate();
-  const { modules, testCases } = useRepoStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const rawModules = useRepoStore(s => s.modules);
+  const rawTestCases = useRepoStore(s => s.testCases);
   const { environments } = useEnvStore();
   const { triggerExecution } = useExecutionStore();
   const [sel, setSel] = useState({ modId: '', envId: environments[1]?.id });
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const modules = rawModules.filter(matchesApp);
+  const testCases = rawTestCases.filter(matchesApp);
 
   const launch = async () => {
     if (!sel.modId) return;
     const tcs = testCases.filter(tc => tc.moduleId === sel.modId && tc.status === 'Active').map(tc => tc.id);
     const mod = modules.find(m => m.id === sel.modId);
-    const id = await triggerExecution({ type: 'MODULE', referenceId: sel.modId, environmentId: sel.envId, testCaseIds: tcs, label: mod?.name });
+    const id = await triggerExecution({ type: 'MODULE', referenceId: sel.modId, environmentId: sel.envId, testCaseIds: tcs, label: mod?.name, appId: activeAppId });
     navigate('/monitor/' + id);
   };
 

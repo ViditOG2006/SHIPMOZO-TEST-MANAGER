@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useExecutionStore, useEnvStore } from '../store';
+import { useExecutionStore, useEnvStore, useAppStore } from '../store';
 import { ChevronDown, ChevronUp, Eye, Download, Filter } from 'lucide-react';
 
 const STATUS_BADGE = {
@@ -89,8 +89,12 @@ function FailureDetail({ step }) {
 
 export default function Reports() {
   const navigate = useNavigate();
-  const { executions } = useExecutionStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const { executions: rawExecs } = useExecutionStore();
   const { environments } = useEnvStore();
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const executions = rawExecs.filter(matchesApp);
   const [filterStatus, setFilterStatus] = useState('All');
   const [filterType, setFilterType] = useState('All');
   const [expandedExec, setExpandedExec] = useState(null);

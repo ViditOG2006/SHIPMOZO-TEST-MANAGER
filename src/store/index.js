@@ -13,8 +13,13 @@ export const useAppStore = create((set) => ({
   setLoading: (v) => set({ loading: v }),
   seeded: false,
   setSeeded: (v) => set({ seeded: v }),
+  activeAppId: localStorage.getItem('activeAppId') || 'APP-001',
+  setActiveAppId: (activeAppId) => {
+    localStorage.setItem('activeAppId', activeAppId);
+    set({ activeAppId });
+  },
   notifications: [
-    { id: 1, msg: 'Welcome to Shipmozo AEP — connected to Firestore', time: 'now', read: false },
+    { id: 1, msg: 'Welcome to AEP — connected to Firestore', time: 'now', read: false },
   ],
   markAllRead: () => set(s => ({ notifications: s.notifications.map(n => ({ ...n, read: true })) })),
 }));
@@ -306,4 +311,52 @@ export const useExecutionStore = create((set, get) => ({
   },
 
   setActiveExecution: (id) => set({ activeExecutionId: id }),
+}));
+
+// ─── Applications Store ────────────────────────────────────────
+export const useAppConfigStore = create((set, get) => ({
+  applications: [],
+  _unsub: [],
+  subscribe: () => {
+    const unsub = subscribeCollection(COLLECTIONS.APPLICATIONS, (data) => {
+      set({ applications: data.sort((a, b) => a.id.localeCompare(b.id)) });
+    });
+    set({ _unsub: [unsub] });
+  },
+  unsubscribe: () => get()._unsub.forEach(fn => fn()),
+  addApp: async (app) => {
+    const apps = get().applications;
+    const id = `APP-${String(apps.length + 1).padStart(3, '0')}`;
+    await createDoc(COLLECTIONS.APPLICATIONS, id, { ...app, id, createdAt: new Date().toISOString() });
+  },
+  updateApp: async (id, patch) => {
+    await updateFireDoc(COLLECTIONS.APPLICATIONS, id, patch);
+  },
+  deleteApp: async (id) => {
+    await deleteFireDoc(COLLECTIONS.APPLICATIONS, id);
+  }
+}));
+
+// ─── Team Members Store ────────────────────────────────────────
+export const useTeamStore = create((set, get) => ({
+  members: [],
+  _unsub: [],
+  subscribe: () => {
+    const unsub = subscribeCollection(COLLECTIONS.TEAM, (data) => {
+      set({ members: data.sort((a, b) => a.id.localeCompare(b.id)) });
+    });
+    set({ _unsub: [unsub] });
+  },
+  unsubscribe: () => get()._unsub.forEach(fn => fn()),
+  addMember: async (member) => {
+    const members = get().members;
+    const id = `MEM-${String(members.length + 1).padStart(3, '0')}`;
+    await createDoc(COLLECTIONS.TEAM, id, { ...member, id, joinedAt: new Date().toISOString() });
+  },
+  updateMember: async (id, patch) => {
+    await updateFireDoc(COLLECTIONS.TEAM, id, patch);
+  },
+  deleteMember: async (id) => {
+    await deleteFireDoc(COLLECTIONS.TEAM, id);
+  }
 }));

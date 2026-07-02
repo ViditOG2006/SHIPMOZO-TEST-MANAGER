@@ -23,9 +23,17 @@ function MiniTrend({ data, color }) {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const executions = useExecutionStore(s => s.executions);
-  const { modules, testCases } = useRepoStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const rawExecutions = useExecutionStore(s => s.executions);
+  const rawModules = useRepoStore(s => s.modules);
+  const rawTestCases = useRepoStore(s => s.testCases);
   const role = useAppStore(s => s.role);
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+
+  const executions = rawExecutions.filter(matchesApp);
+  const modules = rawModules.filter(matchesApp);
+  const testCases = rawTestCases.filter(matchesApp);
 
   const recent = executions.slice(0, 6);
   const totalRuns = executions.length;

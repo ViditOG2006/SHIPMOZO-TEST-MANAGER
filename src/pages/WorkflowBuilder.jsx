@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Copy, GripVertical, X, Play, ChevronRight } from 'lucide-react';
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useWorkflowStore, useRepoStore, useDataStore, useEnvStore, useExecutionStore } from '../store';
+import { useWorkflowStore, useRepoStore, useDataStore, useEnvStore, useExecutionStore, useAppStore } from '../store';
 import { useNavigate } from 'react-router-dom';
 
 function SortableStep({ step, tc, onRemove, index }) {
@@ -78,15 +78,32 @@ function WorkflowModal({ wf, onSave, onClose }) {
 
 export default function WorkflowBuilder() {
   const navigate = useNavigate();
-  const { workflows, addWorkflow, updateWorkflow, deleteWorkflow, cloneWorkflow, updateSteps } = useWorkflowStore();
-  const { testCases, modules } = useRepoStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const { workflows: rawWorkflows, addWorkflow, updateWorkflow, deleteWorkflow, cloneWorkflow, updateSteps } = useWorkflowStore();
+  const { testCases: rawTestCases, modules } = useRepoStore();
   const { environments } = useEnvStore();
   const { dataSets } = useDataStore();
   const { triggerExecution } = useExecutionStore();
 
-  const [selected, setSelected] = useState(workflows[0]?.id || null);
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+
+  const workflows = rawWorkflows.filter(matchesApp);
+  const testCases = rawTestCases.filter(matchesApp);
+
+  const [selected, setSelected] = useState(null);
   const [wfModal, setWfModal] = useState(null);
   const [tcSearch, setTcSearch] = useState('');
+
+  // Sync selection
+  useEffect(() => {
+    if (workflows.length > 0) {
+      if (!selected || !workflows.some(w => w.id === selected)) {
+        setSelected(workflows[0].id);
+      }
+    } else {
+      setSelected(null);
+    }
+  }, [activeAppId, rawWorkflows, selected]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -277,7 +294,13 @@ export default function WorkflowBuilder() {
           wf={wfModal !== 'create' ? wfModal : null}
           onSave={(data) => {
             if (wfModal !== 'create') updateWorkflow(wfModal.id, data);
-            else { addWorkflow(data); setTimeout(() => setSelected(useWorkflowStore.getState().workflows.slice(-1)[0]?.id), 50); }
+            else { 
+              addWorkflow({ ...data, appId: activeAppId }); 
+              setTimeout(() => {
+                const last = useWorkflowStore.getState().workflows.slice(-1)[0];
+                if (last) setSelected(last.id);
+              }, 100); 
+            }
             setWfModal(null);
           }}
           onClose={() => setWfModal(null)}

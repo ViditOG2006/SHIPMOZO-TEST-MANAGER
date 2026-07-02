@@ -1,8 +1,9 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { useAppStore } from '../store';
+import { useAppStore, useAppConfigStore } from '../store';
 import {
   LayoutDashboard, FolderOpen, Database, GitBranch,
-  Play, Globe, Activity, BarChart3, FileText, ChevronRight
+  Play, Globe, Activity, BarChart3, FileText, ChevronRight,
+  Layers, Users
 } from 'lucide-react';
 
 const NAV = [
@@ -11,9 +12,12 @@ const NAV = [
   { to: '/repository', label: 'Test Repository', icon: FolderOpen, roles: ['QA Engineer','QA Lead'] },
   { to: '/test-data', label: 'Test Data', icon: Database, roles: ['QA Engineer','QA Lead'] },
   { to: '/workflows', label: 'Workflow Builder', icon: GitBranch, roles: ['QA Engineer','QA Lead'] },
+  { section: 'Configuration' },
+  { to: '/applications', label: 'Applications', icon: Layers, roles: ['QA Engineer','QA Lead'] },
+  { to: '/team', label: 'Team Members', icon: Users, roles: ['QA Engineer','QA Lead'] },
+  { to: '/environments', label: 'Environments', icon: Globe, roles: ['QA Engineer','QA Lead'] },
   { section: 'Execution' },
   { to: '/execute', label: 'Execution Center', icon: Play, roles: ['QA Engineer','QA Lead','Product Manager','Developer'] },
-  { to: '/environments', label: 'Environments', icon: Globe, roles: ['QA Engineer','QA Lead'] },
   { section: 'Insights' },
   { to: '/monitor', label: 'Live Monitor', icon: Activity, roles: ['QA Engineer','QA Lead','Product Manager','Developer','Management'] },
   { to: '/analytics', label: 'Analytics', icon: BarChart3, roles: ['QA Engineer','QA Lead','Product Manager','Management'] },
@@ -22,15 +26,41 @@ const NAV = [
 
 export default function Sidebar() {
   const role = useAppStore(s => s.role);
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const setActiveAppId = useAppStore(s => s.setActiveAppId);
+  const { applications } = useAppConfigStore();
+
+  const allApps = [
+    { id: 'APP-001', name: 'Shipmozo', icon: '📦' },
+    ...applications.filter(a => a.id !== 'APP-001')
+  ];
+
+  const activeApp = allApps.find(a => a.id === activeAppId) || allApps[0];
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon">⚡</div>
-        <div>
-          <div className="sidebar-logo-text">Shipmozo AEP</div>
+      <div className="sidebar-logo" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: 12, marginBottom: 12 }}>
+        <div className="sidebar-logo-icon">{activeApp?.icon || '⚡'}</div>
+        <div style={{ flex: 1 }}>
+          <div className="sidebar-logo-text" style={{ fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 }}>{activeApp?.name || 'Shipmozo'} AEP</div>
           <div className="sidebar-logo-sub">Test Platform</div>
         </div>
+      </div>
+
+      <div style={{ padding: '0 12px 12px 12px', borderBottom: '1px solid var(--border-color)', marginBottom: 12 }}>
+        <label style={{ display: 'block', fontSize: 10, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>Active App</label>
+        <select 
+          value={activeAppId}
+          onChange={(e) => setActiveAppId(e.target.value)}
+          className="form-input"
+          style={{ width: '100%', padding: '6px 10px', fontSize: 12, background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+        >
+          {allApps.map(app => (
+            <option key={app.id} value={app.id}>
+              {app.name} ({app.id})
+            </option>
+          ))}
+        </select>
       </div>
 
       <nav className="sidebar-nav">
@@ -56,7 +86,7 @@ export default function Sidebar() {
 
       <div className="sidebar-footer">
         <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-          AEP v1.0 · Shipmozo QA
+          AEP v1.0 · {activeApp?.name || 'Shipmozo'} QA
         </div>
       </div>
     </aside>

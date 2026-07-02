@@ -12,9 +12,12 @@ import EnvironmentManager from './pages/EnvironmentManager';
 import MonitoringView from './pages/MonitoringView';
 import Analytics from './pages/Analytics';
 import Reports from './pages/Reports';
+import ApplicationManager from './pages/ApplicationManager';
+import TeamManager from './pages/TeamManager';
 import {
   useRepoStore, useDataStore, useWorkflowStore,
-  useEnvStore, useExecutionStore, useAppStore
+  useEnvStore, useExecutionStore, useAppStore,
+  useAppConfigStore, useTeamStore
 } from './store';
 import './index.css';
 
@@ -60,6 +63,8 @@ function AppContent() {
   const workflowStore = useWorkflowStore();
   const envStore = useEnvStore();
   const execStore = useExecutionStore();
+  const appConfigStore = useAppConfigStore();
+  const teamStore = useTeamStore();
 
   useEffect(() => {
     // Subscribe all collections to Firestore real-time listeners
@@ -68,6 +73,8 @@ function AppContent() {
     workflowStore.subscribe();
     envStore.subscribe();
     execStore.subscribe();
+    appConfigStore.subscribe();
+    teamStore.subscribe();
 
     // After a brief moment, check if Firestore has data
     // If modules is empty after 3s, show seed modal
@@ -86,6 +93,8 @@ function AppContent() {
       workflowStore.unsubscribe();
       envStore.unsubscribe();
       execStore.unsubscribe();
+      appConfigStore.unsubscribe();
+      teamStore.unsubscribe();
     };
   }, []);
 
@@ -111,6 +120,8 @@ function AppContent() {
             <Route path="/monitor/:id" element={<MonitoringView />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/applications" element={<ApplicationManager />} />
+            <Route path="/team" element={<TeamManager />} />
           </Routes>
         </main>
       </div>

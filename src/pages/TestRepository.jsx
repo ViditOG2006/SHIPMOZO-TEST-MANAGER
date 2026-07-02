@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, ChevronDown, ChevronRight, X, Tag } from 'lucide-react';
-import { useRepoStore } from '../store';
+import { useRepoStore, useAppStore } from '../store';
 
 const AUTOMATION_TYPES = ['UI', 'API'];
 const STATUS_OPTIONS = ['Active', 'Draft', 'Deprecated'];
@@ -139,7 +139,16 @@ function TestCaseModal({ tc, modules, onSave, onClose }) {
 }
 
 export default function TestRepository() {
-  const { modules, testCases, addModule, updateModule, deleteModule, addTestCase, updateTestCase, deleteTestCase } = useRepoStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const rawModules = useRepoStore(s => s.modules);
+  const rawTestCases = useRepoStore(s => s.testCases);
+  const { addModule, updateModule, deleteModule, addTestCase, updateTestCase, deleteTestCase } = useRepoStore();
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+
+  const modules = rawModules.filter(matchesApp);
+  const testCases = rawTestCases.filter(matchesApp);
+
   const [expandedModule, setExpandedModule] = useState(null);
   const [search, setSearch] = useState('');
   const [modModal, setModModal] = useState(null); // null | 'create' | moduleObj
@@ -270,7 +279,7 @@ export default function TestRepository() {
           mod={modModal !== 'create' ? modModal : null}
           onSave={(data) => {
             if (modModal !== 'create') updateModule(modModal.id, data);
-            else addModule(data);
+            else addModule({ ...data, appId: activeAppId });
             setModModal(null);
           }}
           onClose={() => setModModal(null)}
@@ -284,7 +293,7 @@ export default function TestRepository() {
           modules={modules}
           onSave={(data) => {
             if (tcModal?.id) updateTestCase(tcModal.id, data);
-            else addTestCase(data);
+            else addTestCase({ ...data, appId: activeAppId });
             setTcModal(null);
           }}
           onClose={() => setTcModal(null)}

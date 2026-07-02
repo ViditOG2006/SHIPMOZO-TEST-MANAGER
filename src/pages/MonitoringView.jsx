@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useExecutionStore, useEnvStore } from '../store';
+import { useExecutionStore, useEnvStore, useAppStore } from '../store';
 import { Square, ArrowLeft, RefreshCw, Activity } from 'lucide-react';
 
 const STATUS_BADGE = {
@@ -22,8 +22,12 @@ function LiveClock({ startTime }) {
 export default function MonitoringView() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { executions, abortExecution, activeExecutionId } = useExecutionStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const { executions: rawExecs, abortExecution, activeExecutionId } = useExecutionStore();
   const { environments } = useEnvStore();
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const executions = rawExecs.filter(matchesApp);
 
   const [selectedId, setSelectedId] = useState(id || activeExecutionId || null);
   const [, forceRender] = useState(0);

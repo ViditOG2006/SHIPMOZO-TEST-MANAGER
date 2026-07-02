@@ -5,7 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts';
 import { ANALYTICS_TREND, MODULE_STATS, FAILING_TESTS } from '../data/seedData';
-import { useExecutionStore } from '../store';
+import { useExecutionStore, useAppStore } from '../store';
 
 const COLORS = { passed: '#10B981', failed: '#EF4444', running: '#F59E0B' };
 
@@ -24,7 +24,11 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 export default function Analytics() {
-  const { executions } = useExecutionStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const { executions: rawExecs } = useExecutionStore();
+
+  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
+  const executions = rawExecs.filter(matchesApp);
   const [range, setRange] = useState('30d');
 
   const slicedTrend = range === '7d' ? ANALYTICS_TREND.slice(-7) : range === '14d' ? ANALYTICS_TREND.slice(-14) : ANALYTICS_TREND;
