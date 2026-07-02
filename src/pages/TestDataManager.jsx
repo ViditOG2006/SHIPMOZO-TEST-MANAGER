@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, Trash2, Edit2, Download, Upload, X, Save, FileText, Database } from 'lucide-react';
 import { useDataStore, useAppStore } from '../store';
+import { filterByActiveApp } from '../utils/appScope';
 import Papa from 'papaparse';
 
 function NewDataSetModal({ onSave, onClose }) {
@@ -46,8 +47,7 @@ export default function TestDataManager() {
   const rawDataSets = useDataStore(s => s.dataSets);
   const { addDataSet, deleteDataSet, updateDataSet, addEntry, updateEntry, deleteEntry, importEntries } = useDataStore();
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-  const dataSets = rawDataSets.filter(matchesApp);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
 
   const [selected, setSelected] = useState(null);
   const [showNew, setShowNew] = useState(false);

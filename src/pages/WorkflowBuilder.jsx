@@ -5,6 +5,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 import { useWorkflowStore, useRepoStore, useDataStore, useEnvStore, useExecutionStore, useAppStore } from '../store';
 import { useNavigate } from 'react-router-dom';
+import { filterByActiveApp } from '../utils/appScope';
 
 function SortableStep({ step, tc, onRemove, index }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: step.id });
@@ -80,15 +81,16 @@ export default function WorkflowBuilder() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
   const { workflows: rawWorkflows, addWorkflow, updateWorkflow, deleteWorkflow, cloneWorkflow, updateSteps } = useWorkflowStore();
-  const { testCases: rawTestCases, modules } = useRepoStore();
-  const { environments } = useEnvStore();
-  const { dataSets } = useDataStore();
+  const { testCases: rawTestCases, modules: rawModules } = useRepoStore();
+  const { environments: rawEnvironments } = useEnvStore();
+  const { dataSets: rawDataSets } = useDataStore();
   const { triggerExecution } = useExecutionStore();
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-
-  const workflows = rawWorkflows.filter(matchesApp);
-  const testCases = rawTestCases.filter(matchesApp);
+  const workflows = filterByActiveApp(rawWorkflows, activeAppId);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId);
+  const modules = filterByActiveApp(rawModules, activeAppId);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
 
   const [selected, setSelected] = useState(null);
   const [wfModal, setWfModal] = useState(null);

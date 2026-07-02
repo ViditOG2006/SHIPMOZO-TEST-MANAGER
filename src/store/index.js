@@ -37,14 +37,15 @@ export const useAppStore = create((set, get) => ({
   _applySession: (firebaseUser, workspace, userDoc) => {
     const appIds = workspace?.appIds || userDoc?.appIds || [];
     const storedAppId = localStorage.getItem('activeAppId') || '';
-    const activeAppId = appIds.includes(storedAppId)
-      ? storedAppId
-      : (workspace?.activeAppId || userDoc?.activeAppId || appIds[0] || '');
-    if (activeAppId) {
-      localStorage.setItem('activeAppId', activeAppId);
-    }
+    let activeAppId = '';
     if (appIds.length) {
+      activeAppId = appIds.includes(storedAppId)
+        ? storedAppId
+        : (workspace?.activeAppId || userDoc?.activeAppId || appIds[0]);
+      localStorage.setItem('activeAppId', activeAppId);
       localStorage.setItem('onboarded', 'true');
+    } else {
+      localStorage.removeItem('activeAppId');
     }
     set({
       user: {
@@ -74,7 +75,8 @@ export const useAppStore = create((set, get) => ({
       } else {
         // Only clear if not in demo mode
         if (get().user?.uid !== 'demo-uid') {
-          set({ user: null, isAuthenticated: false, tenantId: null, userAppIds: [], loading: false });
+          localStorage.removeItem('activeAppId');
+          set({ user: null, isAuthenticated: false, tenantId: null, userAppIds: [], activeAppId: '', loading: false });
         } else {
           set({ loading: false });
         }
@@ -115,7 +117,8 @@ export const useAppStore = create((set, get) => ({
 
   logout: async () => {
     localStorage.removeItem('onboarded');
-    set({ user: null, isAuthenticated: false, tenantId: null });
+    localStorage.removeItem('activeAppId');
+    set({ user: null, isAuthenticated: false, tenantId: null, userAppIds: [], activeAppId: '' });
     await signOut(auth);
     // onAuthStateChanged observer handles final state
   },

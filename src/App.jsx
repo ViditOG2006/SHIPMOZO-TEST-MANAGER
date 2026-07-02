@@ -21,6 +21,7 @@ import {
   useAppConfigStore, useTeamStore
 } from './store';
 import './index.css';
+import { filterByActiveApp } from './utils/appScope';
 
 // ─── Tiny auth-resolving spinner (shown < 1s while Firebase SDK initialises) ───
 function AuthSpinner() {
@@ -97,6 +98,7 @@ function DataShell() {
   const activeAppId = useAppStore(s => s.activeAppId);
   const setActiveAppId = useAppStore(s => s.setActiveAppId);
   const refreshApplicationsFilter = useAppConfigStore(s => s.refreshApplicationsFilter);
+  const allModules = useRepoStore(s => s.modules);
 
   useEffect(() => {
     if (userAppIds.length) refreshApplicationsFilter();
@@ -122,10 +124,6 @@ function DataShell() {
     // Give Firestore a moment to hydrate, then check for seed data
     const timer = setTimeout(() => {
       setDataReady(true);
-      const modules = useRepoStore.getState().modules;
-      if (modules.length === 0) {
-        setShowSeed(true);
-      }
     }, 1500);
 
     return () => {
@@ -139,6 +137,15 @@ function DataShell() {
       teamStore.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!dataReady || !activeAppId) {
+      setShowSeed(false);
+      return;
+    }
+    const modules = filterByActiveApp(allModules, activeAppId);
+    setShowSeed(modules.length === 0);
+  }, [dataReady, activeAppId, allModules]);
 
   if (!dataReady) return <DataLoadingScreen />;
 

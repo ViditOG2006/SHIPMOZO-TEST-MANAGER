@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Edit2, Lock, Plus, Trash2, X, Save, Globe, Key } from 'lucide-react';
 import { useEnvStore, useAppStore } from '../store';
+import { filterByActiveApp } from '../utils/appScope';
 
 const LOCKED_ROLES = ['Product Manager', 'Developer'];
 
@@ -75,8 +76,11 @@ function EnvModal({ env, onSave, onClose }) {
 }
 
 export default function EnvironmentManager() {
-  const { environments, updateEnvironment } = useEnvStore();
+  const rawEnvironments = useEnvStore(s => s.environments);
+  const { updateEnvironment } = useEnvStore();
+  const activeAppId = useAppStore(s => s.activeAppId);
   const role = useAppStore(s => s.role);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId);
   const [editEnv, setEditEnv] = useState(null);
 
   const isLocked = (env) => env.restricted && LOCKED_ROLES.includes(role);
@@ -91,7 +95,13 @@ export default function EnvironmentManager() {
       </div>
 
       <div className="two-col">
-        {environments.map(env => (
+        {environments.length === 0 ? (
+          <div className="card" style={{ gridColumn: '1 / -1', textAlign: 'center', padding: 40 }}>
+            <p style={{ color: 'var(--text-muted)' }}>
+              No environments for this application. Seed sample data or create environments after joining an app.
+            </p>
+          </div>
+        ) : environments.map(env => (
           <div key={env.id} className="card" style={{ borderLeft: `4px solid ${env.color}`, position: 'relative', overflow: 'hidden' }}>
             {isLocked(env) && (
               <div style={{

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { seedFirestore } from '../firebase/seed';
+import { useAppStore } from '../store';
 import { Database, Zap, CheckCircle, Loader } from 'lucide-react';
 
 export default function SeedModal({ onDone }) {
-  const [status, setStatus] = useState('idle'); // idle | seeding | done | error
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const [status, setStatus] = useState('idle');
   const [progress, setProgress] = useState(0);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -14,7 +16,7 @@ export default function SeedModal({ onDone }) {
       await seedFirestore((msg, pct) => {
         setMessage(msg);
         setProgress(pct);
-      });
+      }, activeAppId);
       setStatus('done');
       setTimeout(onDone, 1500);
     } catch (e) {
@@ -32,7 +34,7 @@ export default function SeedModal({ onDone }) {
               <Database size={20} color="var(--accent-blue)" />
               First-Run Setup
             </div>
-            <div className="modal-sub">Initialize Firestore with seed data</div>
+            <div className="modal-sub">Load sample test data for your active application only</div>
           </div>
         </div>
 
@@ -41,7 +43,7 @@ export default function SeedModal({ onDone }) {
             <>
               <div className="alert alert-info">
                 <Zap size={14} />
-                <span>Firestore is empty. Click below to push all initial data (modules, test cases, datasets, workflows, environments) to the cloud.</span>
+                <span>This application has no test data yet. Sample modules, cases, and workflows will be saved under your active App ID only — other users and apps will not see them.</span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

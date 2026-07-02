@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useExecutionStore, useEnvStore, useAppStore } from '../store';
+import { filterByActiveApp } from '../utils/appScope';
 import { Square, ArrowLeft, RefreshCw, Activity } from 'lucide-react';
 
 const STATUS_BADGE = {
@@ -26,8 +27,7 @@ export default function MonitoringView() {
   const { executions: rawExecs, abortExecution, activeExecutionId } = useExecutionStore();
   const { environments } = useEnvStore();
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-  const executions = rawExecs.filter(matchesApp);
+  const executions = filterByActiveApp(rawExecs, activeAppId);
 
   const [selectedId, setSelectedId] = useState(id || activeExecutionId || null);
   const [, forceRender] = useState(0);

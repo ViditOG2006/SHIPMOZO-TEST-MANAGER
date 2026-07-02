@@ -1,13 +1,17 @@
 // ─── One-time Firestore Seeder ────────────────────────────────
-// Writes all seed data to Firestore on first run.
-// Safe to run multiple times (uses setDoc with merge).
+// Writes sample data scoped to the active application workspace.
 import { batchWrite, COLLECTIONS } from './db';
 import {
   MODULES, TEST_CASES, TEST_SUITES, TEST_DATA_SETS,
   WORKFLOWS, ENVIRONMENTS, EXECUTIONS
 } from '../data/seedData';
 
-export async function seedFirestore(onProgress) {
+function withAppId(items, appId) {
+  if (!appId) throw new Error('Select or create an application before seeding sample data.');
+  return items.map(item => ({ ...item, appId }));
+}
+
+export async function seedFirestore(onProgress, appId) {
   const steps = [
     { label: 'Modules', col: COLLECTIONS.MODULES, data: MODULES },
     { label: 'Test Cases', col: COLLECTIONS.TEST_CASES, data: TEST_CASES },
@@ -21,7 +25,7 @@ export async function seedFirestore(onProgress) {
   for (let i = 0; i < steps.length; i++) {
     const step = steps[i];
     onProgress?.(`Seeding ${step.label}…`, Math.round(((i) / steps.length) * 100));
-    await batchWrite(step.col, step.data);
+    await batchWrite(step.col, withAppId(step.data, appId));
   }
 
   onProgress?.('✅ Seed complete!', 100);

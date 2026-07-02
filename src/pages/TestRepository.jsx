@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Plus, Search, Edit2, Trash2, ChevronDown, ChevronRight, X, Tag } from 'lucide-react';
 import { useRepoStore, useAppStore } from '../store';
+import { filterByActiveApp } from '../utils/appScope';
 
 const AUTOMATION_TYPES = ['UI', 'API'];
 const STATUS_OPTIONS = ['Active', 'Draft', 'Deprecated'];
@@ -144,10 +145,8 @@ export default function TestRepository() {
   const rawTestCases = useRepoStore(s => s.testCases);
   const { addModule, updateModule, deleteModule, addTestCase, updateTestCase, deleteTestCase } = useRepoStore();
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-
-  const modules = rawModules.filter(matchesApp);
-  const testCases = rawTestCases.filter(matchesApp);
+  const modules = filterByActiveApp(rawModules, activeAppId);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId);
 
   const [expandedModule, setExpandedModule] = useState(null);
   const [search, setSearch] = useState('');

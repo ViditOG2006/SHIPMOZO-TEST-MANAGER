@@ -6,7 +6,8 @@ import {
 } from 'lucide-react';
 import { useExecutionStore, useRepoStore, useAppStore, useAppConfigStore } from '../store';
 import { CreateAppModal, JoinAppModal } from '../components/AppWorkspaceModals';
-import { ANALYTICS_TREND } from '../data/seedData';
+import { filterByActiveApp } from '../utils/appScope';
+import { buildPassRateTrend } from '../utils/executionAnalytics';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 
 function MiniTrend({ data, color }) {
@@ -37,11 +38,9 @@ export default function Dashboard() {
   const rawTestCases = useRepoStore(s => s.testCases);
   const role = useAppStore(s => s.role);
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-
-  const executions = rawExecutions.filter(matchesApp);
-  const modules = rawModules.filter(matchesApp);
-  const testCases = rawTestCases.filter(matchesApp);
+  const executions = filterByActiveApp(rawExecutions, activeAppId);
+  const modules = filterByActiveApp(rawModules, activeAppId);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId);
 
   const recent = executions.slice(0, 6);
   const totalRuns = executions.length;
@@ -49,6 +48,8 @@ export default function Dashboard() {
   const failed = executions.filter(e => e.status === 'FAILED').length;
   const running = executions.filter(e => e.status === 'RUNNING').length;
   const passRate = totalRuns ? Math.round((passed / totalRuns) * 100) : 0;
+  const trendData = buildPassRateTrend(executions, 30);
+  const todayPassRate = trendData[trendData.length - 1]?.passRate ?? 0;
 
   const statusColor = { PASSED: 'var(--success)', FAILED: 'var(--danger)', RUNNING: 'var(--warning)', QUEUED: 'var(--text-muted)', ABORTED: 'var(--text-muted)' };
   const statusBadge = { PASSED: 'badge-green', FAILED: 'badge-red', RUNNING: 'badge-yellow', QUEUED: 'badge-gray', ABORTED: 'badge-gray' };
@@ -221,10 +222,12 @@ export default function Dashboard() {
           <div className="section-header">
             <div className="section-title"><TrendingUp size={16} color="var(--accent-blue)" /> Pass Rate Trend (30d)</div>
           </div>
-          <MiniTrend data={ANALYTICS_TREND} color="var(--accent-blue)" />
+          <MiniTrend data={trendData} color="var(--accent-blue)" />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, fontSize: 11, color: 'var(--text-muted)' }}>
             <span>30 days ago</span>
-            <span style={{ color: 'var(--success)', fontWeight: 600 }}>{ANALYTICS_TREND[ANALYTICS_TREND.length-1].passRate}% today</span>
+            <span style={{ color: totalRuns ? 'var(--success)' : 'var(--text-muted)', fontWeight: 600 }}>
+              {totalRuns ? `${todayPassRate}% today` : 'No runs yet'}
+            </span>
             <span>Today</span>
           </div>
         </div>

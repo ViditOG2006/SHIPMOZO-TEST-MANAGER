@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Play, ChevronRight, Check, Zap } from 'lucide-react';
 import { useRepoStore, useDataStore, useWorkflowStore, useEnvStore, useExecutionStore, useAppStore } from '../store';
 import { useNavigate } from 'react-router-dom';
+import { filterByActiveApp } from '../utils/appScope';
 
 const TABS = ['Individual', 'Suite', 'Workflow', 'Module'];
 
@@ -30,15 +31,24 @@ function IndividualExec() {
   const activeAppId = useAppStore(s => s.activeAppId);
   const rawModules = useRepoStore(s => s.modules);
   const rawTestCases = useRepoStore(s => s.testCases);
-  const { environments } = useEnvStore();
-  const { dataSets } = useDataStore();
+  const rawEnvironments = useEnvStore(s => s.environments);
+  const rawDataSets = useDataStore(s => s.dataSets);
   const { triggerExecution } = useExecutionStore();
+  const modules = filterByActiveApp(rawModules, activeAppId);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId);
+  const environments = filterByActiveApp(rawEnvironments, activeAppId);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
   const [step, setStep] = useState(0);
-  const [sel, setSel] = useState({ moduleId: '', testCaseId: '', envId: environments[1]?.id, dsId: dataSets[0]?.id });
+  const [sel, setSel] = useState({ moduleId: '', testCaseId: '', envId: '', dsId: '' });
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-  const modules = rawModules.filter(matchesApp);
-  const testCases = rawTestCases.filter(matchesApp);
+  useEffect(() => {
+    if (!sel.envId && environments.length) {
+      setSel(s => ({ ...s, envId: environments[0]?.id || '' }));
+    }
+    if (!sel.dsId && dataSets.length) {
+      setSel(s => ({ ...s, dsId: dataSets[0]?.id || '' }));
+    }
+  }, [environments, dataSets, sel.envId, sel.dsId]);
 
   const modTCs = testCases.filter(tc => tc.moduleId === sel.moduleId);
   const selTC = testCases.find(tc => tc.id === sel.testCaseId);
@@ -157,14 +167,21 @@ function SuiteExec() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
   const rawSuites = useRepoStore(s => s.testSuites);
-  const { environments } = useEnvStore();
-  const { dataSets } = useDataStore();
+  const rawEnvironments = useEnvStore(s => s.environments);
+  const rawDataSets = useDataStore(s => s.dataSets);
   const { triggerExecution } = useExecutionStore();
-  const [sel, setSel] = useState({ suiteId: '', envId: environments[1]?.id, dsId: '' });
+  const environments = filterByActiveApp(rawEnvironments, activeAppId);
+  const dataSets = filterByActiveApp(rawDataSets, activeAppId);
+  const [sel, setSel] = useState({ suiteId: '', envId: '', dsId: '' });
   const [step, setStep] = useState(0);
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-  const testSuites = rawSuites.filter(matchesApp);
+  useEffect(() => {
+    if (!sel.envId && environments.length) {
+      setSel(s => ({ ...s, envId: environments[0]?.id || '' }));
+    }
+  }, [environments, sel.envId]);
+
+  const testSuites = filterByActiveApp(rawSuites, activeAppId);
 
   const selSuite = testSuites.find(s => s.id === sel.suiteId);
 
@@ -244,8 +261,7 @@ function WorkflowExec() {
   const { triggerExecution } = useExecutionStore();
   const [selId, setSelId] = useState('');
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-  const workflows = rawWorkflows.filter(matchesApp);
+  const workflows = filterByActiveApp(rawWorkflows, activeAppId);
 
   const selWF = workflows.find(w => w.id === selId);
 
@@ -289,13 +305,19 @@ function ModuleExec() {
   const activeAppId = useAppStore(s => s.activeAppId);
   const rawModules = useRepoStore(s => s.modules);
   const rawTestCases = useRepoStore(s => s.testCases);
-  const { environments } = useEnvStore();
+  const rawEnvironments = useEnvStore(s => s.environments);
   const { triggerExecution } = useExecutionStore();
-  const [sel, setSel] = useState({ modId: '', envId: environments[1]?.id });
+  const environments = filterByActiveApp(rawEnvironments, activeAppId);
+  const [sel, setSel] = useState({ modId: '', envId: '' });
 
-  const matchesApp = (item) => !item.appId || item.appId === activeAppId || (activeAppId === 'APP-001' && item.appId === undefined);
-  const modules = rawModules.filter(matchesApp);
-  const testCases = rawTestCases.filter(matchesApp);
+  useEffect(() => {
+    if (!sel.envId && environments.length) {
+      setSel(s => ({ ...s, envId: environments[0]?.id || '' }));
+    }
+  }, [environments, sel.envId]);
+
+  const modules = filterByActiveApp(rawModules, activeAppId);
+  const testCases = filterByActiveApp(rawTestCases, activeAppId);
 
   const launch = async () => {
     if (!sel.modId) return;
