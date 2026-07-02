@@ -802,10 +802,26 @@ img { max-width: 100%; }
   color: var(--accent-blue-light);
 }
 
-.auth-mode-tabs {
+.app-mode-tabs {
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
+}
+
+.app-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.app-modal-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.app-modal-row .form-group {
+  min-width: 180px;
 }
 
 @media (max-width: 960px) {

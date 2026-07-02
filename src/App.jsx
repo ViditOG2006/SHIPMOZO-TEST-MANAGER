@@ -15,7 +15,6 @@ import Reports from './pages/Reports';
 import ApplicationManager from './pages/ApplicationManager';
 import TeamManager from './pages/TeamManager';
 import AuthPage from './pages/AuthPage';
-import OnboardingPage from './pages/OnboardingPage';
 import {
   useRepoStore, useDataStore, useWorkflowStore,
   useEnvStore, useExecutionStore, useAppStore,
@@ -207,10 +206,7 @@ function AppContent() {
   // Phase 1b: Not authenticated → show login page instantly
   if (!isAuthenticated) return <AuthPage />;
 
-  // Phase 1c: Authenticated but no app workspace yet
-  if (!onboarded && !userAppIds.length && user?.uid !== 'demo-uid') return <OnboardingPage />;
-
-  // Phase 1d: Authenticated + onboarded → mount the data shell
+  // Phase 1d: Authenticated → mount the data shell (apps managed on dashboard)
   return <DataShell />;
 }
 

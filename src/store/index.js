@@ -82,151 +82,35 @@ export const useAppStore = create((set, get) => ({
     });
   },
 
-  login: async (email, password, appId) => {
-    const appIdNorm = String(appId || '').trim();
-    if (!appIdNorm) {
-      const err = new Error('Application ID is required.');
-      err.code = 'auth/missing-app-id';
-      throw err;
-    }
-
-    const app = await fetchOne(COLLECTIONS.APPLICATIONS, appIdNorm);
-    if (!app) {
-      const err = new Error('Application not found. Check your App ID.');
-      err.code = 'auth/invalid-app-id';
-      throw err;
-    }
-
+  login: async (email, password) => {
     await signInWithEmailAndPassword(auth, email, password);
-    const uid = auth.currentUser.uid;
-    const workspace = await fetchOne(COLLECTIONS.WORKSPACES, uid);
-    const userDoc = await fetchOne('users', uid);
-    const appIds = workspace?.appIds || userDoc?.appIds || [];
-
-    if (!appIds.includes(appIdNorm)) {
-      await signOut(auth);
-      const err = new Error('You are not a member of this application workspace.');
-      err.code = 'auth/app-access-denied';
-      throw err;
-    }
-
-    localStorage.setItem('activeAppId', appIdNorm);
     localStorage.setItem('onboarded', 'true');
-    set({ activeAppId: appIdNorm });
-    await updateFireDoc(COLLECTIONS.WORKSPACES, uid, { activeAppId: appIdNorm });
   },
 
-  signupCreate: async ({
-    email, password, name,
-    appName, baseUrl, defaultUsername, defaultPassword,
-    postmanCollectionId, postmanEnvironmentId,
-  }) => {
+  signup: async (email, password, name) => {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
-
-    const appId = generateAppId();
     const uid = cred.user.uid;
     const now = new Date().toISOString();
-
-    await createDoc(COLLECTIONS.APPLICATIONS, appId, {
-      id: appId,
-      name: appName.trim(),
-      icon: '🚀',
-      description: `Workspace for ${appName.trim()}`,
-      baseUrl: baseUrl.trim(),
-      frontendTester: 'Playwright',
-      backendTester: 'Postman Collection',
-      postmanCollectionId: postmanCollectionId.trim(),
-      postmanEnvironmentId: postmanEnvironmentId.trim(),
-      defaultUsername: defaultUsername.trim(),
-      defaultPassword: defaultPassword,
-      ownerId: uid,
-      memberIds: [uid],
-      createdAt: now,
-    });
 
     await createDoc('users', uid, {
       uid,
       name,
       email,
       role: 'QA Lead',
-      appIds: [appId],
-      activeAppId: appId,
+      appIds: [],
       createdAt: now,
     });
 
     await createDoc(COLLECTIONS.WORKSPACES, uid, {
       userId: uid,
       email,
-      appIds: [appId],
-      activeAppId: appId,
-      orgName: appName.trim(),
+      appIds: [],
       createdAt: now,
     });
 
-    localStorage.setItem('activeAppId', appId);
     localStorage.setItem('onboarded', 'true');
-    set({ activeAppId: appId, userAppIds: [appId] });
-  },
-
-  signupJoin: async ({ email, password, name, appId }) => {
-    const appIdNorm = String(appId || '').trim();
-    if (!appIdNorm) {
-      const err = new Error('Application ID is required to join a workspace.');
-      err.code = 'auth/missing-app-id';
-      throw err;
-    }
-
-    const app = await fetchOne(COLLECTIONS.APPLICATIONS, appIdNorm);
-    if (!app) {
-      const err = new Error('Application not found. Ask your admin for the correct App ID.');
-      err.code = 'auth/invalid-app-id';
-      throw err;
-    }
-
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(cred.user, { displayName: name });
-
-    const uid = cred.user.uid;
-    const memberIds = [...new Set([...(app.memberIds || []), uid])];
-    await updateFireDoc(COLLECTIONS.APPLICATIONS, appIdNorm, { memberIds });
-
-    await createDoc('users', uid, {
-      uid,
-      name,
-      email,
-      role: 'QA Engineer',
-      appIds: [appIdNorm],
-      activeAppId: appIdNorm,
-      joinedAt: new Date().toISOString(),
-    });
-
-    await createDoc(COLLECTIONS.WORKSPACES, uid, {
-      userId: uid,
-      email,
-      appIds: [appIdNorm],
-      activeAppId: appIdNorm,
-      joinedAt: new Date().toISOString(),
-    });
-
-    localStorage.setItem('activeAppId', appIdNorm);
-    localStorage.setItem('onboarded', 'true');
-    set({ activeAppId: appIdNorm, userAppIds: [appIdNorm] });
-  },
-
-  signup: async (email, password, name, orgName) => {
-    // Legacy signup — redirects to create flow with minimal app data
-    await get().signupCreate({
-      email,
-      password,
-      name,
-      appName: orgName || 'My Application',
-      baseUrl: '',
-      defaultUsername: '',
-      defaultPassword: '',
-      postmanCollectionId: '',
-      postmanEnvironmentId: '',
-    });
+    set({ userAppIds: [] });
   },
 
   logout: async () => {
@@ -556,22 +440,23 @@ export const useExecutionStore = create((set, get) => ({
 // ─── Applications Store ────────────────────────────────────────
 export const useAppConfigStore = create((set, get) => ({
   applications: [],
+  _allApplications: [],
   _unsub: [],
+  _applyAppFilter: (data) => {
+    const all = data || get()._allApplications;
+    const appIds = useAppStore.getState().userAppIds || useAppStore.getState().user?.appIds || [];
+    const list = appIds.length ? all.filter(a => appIds.includes(a.id)) : [];
+    set({ applications: list.sort((a, b) => a.id.localeCompare(b.id)) });
+  },
   subscribe: () => {
     const unsub = subscribeCollection(COLLECTIONS.APPLICATIONS, (data) => {
-      const appIds = useAppStore.getState().userAppIds || useAppStore.getState().user?.appIds || [];
-      const list = appIds.length ? data.filter(a => appIds.includes(a.id)) : data;
-      set({ applications: list.sort((a, b) => a.id.localeCompare(b.id)) });
+      set({ _allApplications: data });
+      get()._applyAppFilter(data);
     });
     set({ _unsub: [unsub] });
   },
   unsubscribe: () => get()._unsub.forEach(fn => fn()),
-  refreshApplicationsFilter: () => {
-    const apps = get().applications;
-    const appIds = useAppStore.getState().userAppIds || useAppStore.getState().user?.appIds || [];
-    if (!appIds.length) return;
-    set({ applications: apps.filter(a => appIds.includes(a.id)) });
-  },
+  refreshApplicationsFilter: () => get()._applyAppFilter(),
   addApp: async (app) => {
     const uid = useAppStore.getState().user?.uid;
     const id = generateAppId();
@@ -592,10 +477,49 @@ export const useAppConfigStore = create((set, get) => ({
       await upsertDoc('users', uid, { appIds, activeAppId: id });
       useAppStore.getState().setActiveAppId(id);
       useAppStore.setState({ userAppIds: appIds, user: { ...useAppStore.getState().user, appIds } });
+      get().refreshApplicationsFilter();
     }
     return id;
   },
   addApplication: async (app) => get().addApp(app),
+  joinApp: async (joinAppId) => {
+    const appIdNorm = String(joinAppId || '').trim();
+    if (!appIdNorm) throw new Error('Application ID is required.');
+
+    const uid = useAppStore.getState().user?.uid;
+    if (!uid || uid === 'demo-uid') {
+      useAppStore.getState().setActiveAppId(appIdNorm);
+      return appIdNorm;
+    }
+
+    const app = await fetchOne(COLLECTIONS.APPLICATIONS, appIdNorm);
+    if (!app) throw new Error('Application not found. Check the App ID.');
+
+    const workspace = await fetchOne(COLLECTIONS.WORKSPACES, uid);
+    const userDoc = await fetchOne('users', uid);
+    const currentAppIds = workspace?.appIds || userDoc?.appIds || [];
+
+    if (currentAppIds.includes(appIdNorm)) {
+      useAppStore.getState().setActiveAppId(appIdNorm);
+      await upsertDoc(COLLECTIONS.WORKSPACES, uid, { activeAppId: appIdNorm });
+      return appIdNorm;
+    }
+
+    const newAppIds = [...currentAppIds, appIdNorm];
+    const memberIds = [...new Set([...(app.memberIds || []), uid])];
+    await updateFireDoc(COLLECTIONS.APPLICATIONS, appIdNorm, { memberIds });
+    await upsertDoc(COLLECTIONS.WORKSPACES, uid, { appIds: newAppIds, activeAppId: appIdNorm });
+    await upsertDoc('users', uid, { appIds: newAppIds, activeAppId: appIdNorm });
+
+    useAppStore.setState({
+      userAppIds: newAppIds,
+      user: { ...useAppStore.getState().user, appIds: newAppIds },
+      activeAppId: appIdNorm,
+    });
+    localStorage.setItem('activeAppId', appIdNorm);
+    get().refreshApplicationsFilter();
+    return appIdNorm;
+  },
   updateApp: async (id, patch) => {
     await updateFireDoc(COLLECTIONS.APPLICATIONS, id, patch);
   },

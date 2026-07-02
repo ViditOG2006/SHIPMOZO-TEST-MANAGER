@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Play, TrendingUp, CheckCircle, XCircle, Clock, Zap,
-  ArrowRight, Activity, FolderOpen, GitBranch
+  ArrowRight, Activity, FolderOpen, GitBranch, Plus, Users, Layers, Copy, Check,
 } from 'lucide-react';
-import { useExecutionStore, useRepoStore, useAppStore } from '../store';
+import { useExecutionStore, useRepoStore, useAppStore, useAppConfigStore } from '../store';
+import { CreateAppModal, JoinAppModal } from '../components/AppWorkspaceModals';
 import { ANALYTICS_TREND } from '../data/seedData';
 import { LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -24,6 +26,12 @@ function MiniTrend({ data, color }) {
 export default function Dashboard() {
   const navigate = useNavigate();
   const activeAppId = useAppStore(s => s.activeAppId);
+  const setActiveAppId = useAppStore(s => s.setActiveAppId);
+  const user = useAppStore(s => s.user);
+  const { applications } = useAppConfigStore();
+  const [showCreate, setShowCreate] = useState(false);
+  const [showJoin, setShowJoin] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
   const rawExecutions = useExecutionStore(s => s.executions);
   const rawModules = useRepoStore(s => s.modules);
   const rawTestCases = useRepoStore(s => s.testCases);
@@ -51,14 +59,111 @@ export default function Dashboard() {
     return s < 60 ? `${s}s` : `${Math.floor(s/60)}m ${s%60}s`;
   };
 
+  const copyAppId = (id) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const activeApp = applications.find(a => a.id === activeAppId);
+
   return (
     <div>
+      {showCreate && <CreateAppModal onClose={() => setShowCreate(false)} />}
+      {showJoin && <JoinAppModal onClose={() => setShowJoin(false)} />}
+
       {/* Welcome */}
       <div style={{ marginBottom: 28 }}>
         <h1 className="page-title" style={{ fontSize: 26 }}>
-          Welcome back, <span style={{ color: 'var(--accent-blue-light)' }}>{role}</span> 👋
+          Welcome back, <span style={{ color: 'var(--accent-blue-light)' }}>{user?.name || role}</span> 👋
         </h1>
-        <p className="page-sub">Here's your automation execution overview for today.</p>
+        <p className="page-sub">
+          {activeApp
+            ? <>Working on <strong style={{ color: 'var(--accent-blue-light)' }}>{activeApp.name}</strong> — switch apps below or from the sidebar.</>
+            : 'Create or join an application workspace to get started.'}
+        </p>
+      </div>
+
+      {/* My Applications */}
+      <div className="card" style={{ marginBottom: 28, padding: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+          <div className="section-title" style={{ margin: 0 }}>
+            <Layers size={16} color="var(--accent-blue)" /> My Applications
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
+              <Plus size={14} /> Create App
+            </button>
+            <button className="btn btn-outline btn-sm" onClick={() => setShowJoin(true)}>
+              <Users size={14} /> Join App
+            </button>
+          </div>
+        </div>
+
+        {applications.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '32px 16px',
+            border: '1px dashed var(--border-subtle)', borderRadius: 12,
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🌐</div>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
+              No applications yet. Create your first app or join a team with an App ID.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
+                <Plus size={14} /> Create App
+              </button>
+              <button className="btn btn-outline" onClick={() => setShowJoin(true)}>
+                <Users size={14} /> Join App
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
+            {applications.map(app => {
+              const isActive = app.id === activeAppId;
+              return (
+                <div
+                  key={app.id}
+                  onClick={() => setActiveAppId(app.id)}
+                  style={{
+                    padding: 16, borderRadius: 12, cursor: 'pointer',
+                    border: isActive ? '1px solid var(--accent-blue)' : '1px solid var(--border-subtle)',
+                    background: isActive ? 'rgba(59,130,246,0.08)' : 'var(--bg-primary)',
+                    transition: 'var(--transition)',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 22 }}>{app.icon || '🚀'}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {app.name}
+                        {isActive && (
+                          <span className="badge badge-blue" style={{ fontSize: 9 }}>Active</span>
+                        )}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                        <code style={{ fontSize: 10, color: 'var(--accent-purple)' }}>{app.id}</code>
+                        <button
+                          type="button"
+                          className="btn btn-icon"
+                          style={{ padding: 2 }}
+                          onClick={(e) => { e.stopPropagation(); copyAppId(app.id); }}
+                          title="Copy App ID"
+                        >
+                          {copiedId === app.id ? <Check size={11} color="var(--success)" /> : <Copy size={11} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {app.baseUrl || 'No URL configured'}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* KPI Row */}
