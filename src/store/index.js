@@ -354,7 +354,7 @@ export const useExecutionStore = create((set, get) => ({
 
   unsubscribe: () => get()._unsub.forEach(fn => fn()),
 
-  triggerExecution: async ({ type, referenceId, environmentId, dataSetId, testCaseIds, label, stopOnFailure }) => {
+  triggerExecution: async ({ type, referenceId, environmentId, dataSetId, testCaseIds, label, stopOnFailure, appId }) => {
     const { testCases } = useRepoStore.getState();
     const id = `EX-${Date.now()}`;
     const steps = testCaseIds.map((tcId, i) => {
@@ -365,6 +365,7 @@ export const useExecutionStore = create((set, get) => ({
     const execution = {
       id, type, referenceId, environmentId: environmentId || '',
       dataSetId: dataSetId || '', status: 'QUEUED',
+      appId: appId || useAppStore.getState().activeAppId || 'APP-001',
       stopOnFailure: stopOnFailure !== false,
       totalTests: steps.length, passed: 0, failed: 0, skipped: 0,
       startTime: new Date().toISOString(), endTime: null,
