@@ -57,24 +57,24 @@ export const ENVIRONMENTS = [
   {
     id: 'ENV-001', name: 'Local', color: '#8B5CF6', restricted: false,
     baseUrl: 'http://localhost:3000', apiUrl: 'http://localhost:8080/api/v1',
-    credentials: { username: 'local_admin@shipmozo.com', password: '••••••••' },
+    credentials: { username: 'admin@example.com', password: '••••••••' },
     variables: [{ key: 'TIMEOUT', value: '30000' }, { key: 'HEADLESS', value: 'false' }, { key: 'RETRY_COUNT', value: '1' }]
   },
   {
     id: 'ENV-002', name: 'QA', color: '#3B82F6', restricted: false,
-    baseUrl: 'https://qa.shipmozo.com', apiUrl: 'https://qa-api.shipmozo.com/api/v1',
-    credentials: { username: 'qa_test@shipmozo.com', password: '••••••••' },
+    baseUrl: 'https://qa.example.com', apiUrl: 'https://qa-api.example.com/api/v1',
+    credentials: { username: 'qa@example.com', password: '••••••••' },
     variables: [{ key: 'TIMEOUT', value: '60000' }, { key: 'HEADLESS', value: 'true' }, { key: 'RETRY_COUNT', value: '2' }]
   },
   {
     id: 'ENV-003', name: 'UAT', color: '#F59E0B', restricted: false,
-    baseUrl: 'https://uat.shipmozo.com', apiUrl: 'https://uat-api.shipmozo.com/api/v1',
-    credentials: { username: 'uat_test@shipmozo.com', password: '••••••••' },
+    baseUrl: 'https://uat.example.com', apiUrl: 'https://uat-api.example.com/api/v1',
+    credentials: { username: 'uat@example.com', password: '••••••••' },
     variables: [{ key: 'TIMEOUT', value: '90000' }, { key: 'HEADLESS', value: 'true' }, { key: 'RETRY_COUNT', value: '3' }]
   },
   {
     id: 'ENV-004', name: 'Production', color: '#EF4444', restricted: true,
-    baseUrl: 'https://app.shipmozo.com', apiUrl: 'https://api.shipmozo.com/api/v1',
+    baseUrl: 'https://app.example.com', apiUrl: 'https://api.example.com/api/v1',
     credentials: { username: '(restricted)', password: '••••••••' },
     variables: [{ key: 'TIMEOUT', value: '120000' }, { key: 'HEADLESS', value: 'true' }, { key: 'RETRY_COUNT', value: '0' }]
   },
@@ -84,7 +84,7 @@ export const TEST_DATA_SETS = [
   {
     id: 'DS-001', name: 'LoginData_QA', environment: 'QA', description: 'Login credentials for QA environment',
     entries: [
-      { key: 'username', value: 'qa_test@shipmozo.com' },
+      { key: 'username', value: 'qa@example.com' },
       { key: 'password', value: 'Test@1234' },
       { key: 'otp', value: '123456' },
     ]
@@ -132,7 +132,7 @@ export const TEST_DATA_SETS = [
   {
     id: 'DS-006', name: 'LoginData_UAT', environment: 'UAT', description: 'Login credentials for UAT environment',
     entries: [
-      { key: 'username', value: 'uat_test@shipmozo.com' },
+      { key: 'username', value: 'uat@example.com' },
       { key: 'password', value: 'UAT@Test456' },
     ]
   },

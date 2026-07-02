@@ -93,6 +93,22 @@ function DataShell() {
   const execStore = useExecutionStore();
   const appConfigStore = useAppConfigStore();
   const teamStore = useTeamStore();
+  const applications = useAppConfigStore(s => s.applications);
+  const userAppIds = useAppStore(s => s.userAppIds);
+  const activeAppId = useAppStore(s => s.activeAppId);
+  const setActiveAppId = useAppStore(s => s.setActiveAppId);
+  const refreshApplicationsFilter = useAppConfigStore(s => s.refreshApplicationsFilter);
+
+  useEffect(() => {
+    if (userAppIds.length) refreshApplicationsFilter();
+  }, [userAppIds, refreshApplicationsFilter]);
+
+  useEffect(() => {
+    if (!applications.length) return;
+    if (!activeAppId || !applications.some(a => a.id === activeAppId)) {
+      setActiveAppId(applications[0].id);
+    }
+  }, [applications, activeAppId, setActiveAppId]);
 
   useEffect(() => {
     // Subscribe all collections to Firestore real-time listeners
@@ -158,7 +174,7 @@ function DataShell() {
 
 // ─── Phase 1: Auth Gate (resolves in < 1 second) ───────────────────────────
 function AppContent() {
-  const { isAuthenticated, initAuth, user } = useAppStore();
+  const { isAuthenticated, initAuth, user, userAppIds } = useAppStore();
   const [authChecked, setAuthChecked] = useState(false);
   const [onboarded, setOnboarded] = useState(() => localStorage.getItem('onboarded') === 'true');
 
@@ -191,8 +207,8 @@ function AppContent() {
   // Phase 1b: Not authenticated → show login page instantly
   if (!isAuthenticated) return <AuthPage />;
 
-  // Phase 1c: Authenticated but not onboarded → show workspace setup
-  if (!onboarded && user?.uid !== 'demo-uid') return <OnboardingPage />;
+  // Phase 1c: Authenticated but no app workspace yet
+  if (!onboarded && !userAppIds.length && user?.uid !== 'demo-uid') return <OnboardingPage />;
 
   // Phase 1d: Authenticated + onboarded → mount the data shell
   return <DataShell />;

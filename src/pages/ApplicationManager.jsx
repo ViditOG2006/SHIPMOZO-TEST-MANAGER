@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAppConfigStore, useAppStore } from '../store';
-import { Plus, Trash2, Shield, Settings, Check, HelpCircle, Key, Globe, FileCode } from 'lucide-react';
+import { Plus, Trash2, Settings, Check, Globe, FileCode, Copy, KeyRound } from 'lucide-react';
 
 export default function ApplicationManager() {
   const { applications, addApp, updateApp, deleteApp } = useAppConfigStore();
@@ -8,6 +8,7 @@ export default function ApplicationManager() {
   const setActiveAppId = useAppStore(s => s.setActiveAppId);
 
   const [showAddModal, setShowAddModal] = useState(false);
+  const [copiedId, setCopiedId] = useState(null);
   const [form, setForm] = useState({
     name: '',
     icon: '🚀',
@@ -22,25 +23,19 @@ export default function ApplicationManager() {
     defaultPassword: ''
   });
 
-  const allApps = [
-    {
-      id: 'APP-001',
-      name: 'Shipmozo',
-      icon: '📦',
-      description: 'E-commerce logistics & shipping optimization panel under test',
-      baseUrl: 'https://panel.appiify.com',
-      frontendTester: 'Playwright',
-      backendTester: 'Postman Collection',
-      postmanCollectionId: '55337156-f59893d8-8c36-4956-bb1c-5ad183d754f5',
-      postmanEnvironmentId: '55337156-5b5c4b81-2d7c-49d6-b606-b6707c22951d',
-    },
-    ...applications.filter(a => a.id !== 'APP-001')
-  ];
+  const allApps = applications;
+
+  const copyAppId = (id) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    await addApp(form);
+    const newId = await addApp(form);
+    setActiveAppId(newId);
     setShowAddModal(false);
     setForm({
       name: '',
@@ -63,7 +58,7 @@ export default function ApplicationManager() {
         <div>
           <h1 className="page-title" style={{ margin: 0 }}>Application Registry</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
-            Register your software applications, choose automation testing frameworks, and set target environments.
+            Each app gets a unique ID in Firestore. Share it so teammates can sign in. Panel URL, credentials, and Postman config are stored here — not in .env.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
@@ -72,6 +67,25 @@ export default function ApplicationManager() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 20 }}>
+        {allApps.length === 0 && (
+          <div style={{
+            gridColumn: '1 / -1',
+            padding: 48,
+            textAlign: 'center',
+            background: 'var(--bg-card)',
+            borderRadius: 'var(--radius-lg)',
+            border: '1px dashed var(--border-color)',
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🌐</div>
+            <h3 style={{ margin: '0 0 8px 0' }}>No applications registered yet</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 20 }}>
+              Register any web application you want to test — set its URL, Postman collection, and login credentials.
+            </p>
+            <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+              <Plus size={16} /> Register Your First App
+            </button>
+          </div>
+        )}
         {allApps.map(app => {
           const isActive = app.id === activeAppId;
           return (
@@ -110,18 +124,28 @@ export default function ApplicationManager() {
                         {app.name}
                         {isActive && <span style={{ padding: '2px 8px', borderRadius: 4, background: 'rgba(59,130,246,0.15)', color: 'var(--accent-blue)', fontSize: 10, fontWeight: 600 }}>Active</span>}
                       </h3>
-                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{app.id}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <KeyRound size={11} />
+                        <code style={{ color: 'var(--accent-purple)', fontSize: 11 }}>{app.id}</code>
+                        <button
+                          type="button"
+                          className="btn btn-icon"
+                          style={{ padding: 2, opacity: 0.8 }}
+                          title="Copy App ID for team login"
+                          onClick={() => copyAppId(app.id)}
+                        >
+                          {copiedId === app.id ? <Check size={12} color="var(--success)" /> : <Copy size={12} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  {app.id !== 'APP-001' && (
-                    <button 
+                  <button 
                       className="btn btn-icon" 
                       onClick={() => deleteApp(app.id)}
                       style={{ color: 'var(--accent-red)', padding: 6, opacity: 0.7 }}
                     >
                       <Trash2 size={15} />
                     </button>
-                  )}
                 </div>
 
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', minHeight: 40, lineHeight: 1.4, margin: '0 0 16px 0' }}>
@@ -191,7 +215,7 @@ export default function ApplicationManager() {
                     <input 
                       type="text" 
                       className="form-input" 
-                      placeholder="e.g. Shipmozo Logistics"
+                      placeholder="e.g. My SaaS Portal"
                       value={form.name}
                       onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
                       required

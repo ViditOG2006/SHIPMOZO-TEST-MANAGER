@@ -37,7 +37,7 @@ export default function TopBar() {
   return (
     <header className="topbar">
       <div className="topbar-breadcrumb">
-        <span className="breadcrumb-item">AEP</span>
+        <span className="breadcrumb-item">Test Manager</span>
         <span className="breadcrumb-sep"><ChevronDown size={12} style={{ transform: 'rotate(-90deg)' }} /></span>
         <span className="breadcrumb-item active">{page}</span>
       </div>

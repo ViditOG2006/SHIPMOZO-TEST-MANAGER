@@ -1,46 +1,96 @@
 import { useState } from 'react';
 import { useAppStore } from '../store';
-import { Mail, Lock, User, Shield, Building, ArrowRight, Zap, CheckCircle2 } from 'lucide-react';
+import {
+  Mail, Lock, User, Building, ArrowRight, Zap, CheckCircle2,
+  KeyRound, Globe, FileCode,
+} from 'lucide-react';
+
+const ERROR_MAP = {
+  'auth/operation-not-allowed': 'Email/Password sign-in is not enabled in Firebase Console.',
+  'auth/email-already-in-use': 'This email is already registered. Try signing in instead.',
+  'auth/weak-password': 'Password must be at least 6 characters.',
+  'auth/invalid-email': 'Please enter a valid email address.',
+  'auth/user-not-found': 'No account found with this email.',
+  'auth/wrong-password': 'Incorrect password.',
+  'auth/invalid-credential': 'Invalid email or password.',
+  'auth/too-many-requests': 'Too many failed attempts. Try again later.',
+  'auth/missing-app-id': 'Application ID is required.',
+  'auth/invalid-app-id': 'Application not found. Check your App ID.',
+  'auth/app-access-denied': 'You are not a member of this application workspace.',
+};
 
 export default function AuthPage() {
-  const { login, signup, loginDemo } = useAppStore();
-  const [isRegister, setIsRegister] = useState(false);
-  const [form, setForm] = useState({ name: '', email: '', password: '', orgName: '' });
+  const { login, signupCreate, signupJoin, loginDemo } = useAppStore();
+  const [mode, setMode] = useState('login'); // login | create | join
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    appId: '',
+    name: '',
+    email: '',
+    password: '',
+    appName: '',
+    baseUrl: '',
+    defaultUsername: '',
+    defaultPassword: '',
+    postmanCollectionId: '',
+    postmanEnvironmentId: '',
+  });
 
-  const handleSubmit = async (e) => {
+  const setField = (key, value) => setForm(f => ({ ...f, [key]: value }));
+
+  const handleError = (err) => {
+    const code = err.code || '';
+    setError(ERROR_MAP[code] || err.message || 'Authentication failed.');
+    setLoading(false);
+  };
+
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-
     try {
-      if (isRegister) {
-        await signup(form.email, form.password, form.name, form.orgName);
-      } else {
-        await login(form.email, form.password);
-      }
+      await login(form.email, form.password, form.appId);
     } catch (err) {
-      const code = err.code || '';
-      const ERROR_MAP = {
-        'auth/operation-not-allowed': 'Email/Password sign-in is not enabled. Please enable it in Firebase Console → Authentication → Sign-in method.',
-        'auth/email-already-in-use': 'This email is already registered. Try signing in instead.',
-        'auth/weak-password': 'Password must be at least 6 characters.',
-        'auth/invalid-email': 'Please enter a valid email address.',
-        'auth/user-not-found': 'No account found with this email. Try signing up.',
-        'auth/wrong-password': 'Incorrect password. Please try again.',
-        'auth/invalid-credential': 'Invalid credentials. Please check your email and password.',
-        'auth/too-many-requests': 'Too many failed attempts. Please try again later.',
-      };
-      const cleanMsg = ERROR_MAP[code] || err.message.replace('Firebase:', '').replace(/\(auth\/.*\)\.?/, '').trim();
-      setError(cleanMsg || 'Authentication failed. Please check your credentials.');
-      setLoading(false);
+      handleError(err);
     }
   };
 
-  const handleDemoLogin = (role) => {
+  const handleCreate = async (e) => {
+    e.preventDefault();
     setError(null);
-    loginDemo(role);
+    setLoading(true);
+    try {
+      await signupCreate({
+        email: form.email,
+        password: form.password,
+        name: form.name,
+        appName: form.appName,
+        baseUrl: form.baseUrl,
+        defaultUsername: form.defaultUsername,
+        defaultPassword: form.defaultPassword,
+        postmanCollectionId: form.postmanCollectionId,
+        postmanEnvironmentId: form.postmanEnvironmentId,
+      });
+    } catch (err) {
+      handleError(err);
+    }
+  };
+
+  const handleJoin = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setLoading(true);
+    try {
+      await signupJoin({
+        email: form.email,
+        password: form.password,
+        name: form.name,
+        appId: form.appId,
+      });
+    } catch (err) {
+      handleError(err);
+    }
   };
 
   return (
@@ -49,9 +99,8 @@ export default function AuthPage() {
       display: 'flex',
       background: 'radial-gradient(circle at 10% 20%, rgba(90, 80, 240, 0.08) 0%, transparent 45%), radial-gradient(circle at 90% 80%, rgba(140, 50, 240, 0.08) 0%, transparent 45%), var(--bg-primary)',
       color: 'var(--text-primary)',
-      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     }}>
-      {/* Left side: Pitch Panel (Hidden on small screens) */}
       <div className="auth-pitch-panel" style={{
         flex: 1,
         display: 'flex',
@@ -60,42 +109,39 @@ export default function AuthPage() {
         padding: '60px 80px',
         borderRight: '1px solid var(--border-color)',
         background: 'rgba(15, 23, 42, 0.3)',
-        backdropFilter: 'blur(20px)'
+        backdropFilter: 'blur(20px)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 40 }}>
           <div style={{
-            width: 44,
-            height: 44,
+            width: 44, height: 44,
             background: 'linear-gradient(135deg, var(--accent-blue), var(--accent-purple))',
-            borderRadius: 12,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 24,
-            boxShadow: '0 0 20px rgba(59,130,246,0.3)'
+            borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 24, boxShadow: '0 0 20px rgba(59,130,246,0.3)',
           }}>⚡</div>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.5 }}>AEP CLOUD</div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Enterprise Automation SaaS</div>
+            <div style={{ fontWeight: 800, fontSize: 18, letterSpacing: 0.5 }}>Test Manager</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>
+              Multi-App Test Orchestration
+            </div>
           </div>
         </div>
 
         <h1 style={{ fontSize: 42, fontWeight: 800, lineHeight: 1.1, marginBottom: 20 }}>
-          Cloud Scale Testing <br/>
+          One App ID.<br />
           <span style={{ background: 'linear-gradient(135deg, #60A5FA, #A78BFA)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-            Built for Modern Teams.
+            Your whole test workspace.
           </span>
         </h1>
-        
+
         <p style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.6, maxWidth: 480, marginBottom: 40 }}>
-          Deploy, manage, and scale Playwright E2E UI testing and Postman API runs inside a unified workspace. Get AI self-healing diagnostics and instant screenshot walkthroughs.
+          Register your webapp in the database with a unique App ID. Team members sign in with that ID — panel URL, credentials, and Postman config are loaded from Firestore, not .env.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 420 }}>
           {[
-            { title: 'Multi-Tenant Isolation', desc: 'Secure data boundaries for multiple applications and project components.' },
-            { title: 'Hybrid Runner Orchestration', desc: 'Run Newman collections alongside Selenium/Playwright scripts in the cloud.' },
-            { title: 'Team-Wide Collaboration', desc: 'Invite engineers, leads, and product owners to unified live run monitors.' }
+            { title: 'App ID = Tenant Key', desc: 'Every user authenticates against a specific application workspace ID.' },
+            { title: 'Config in Firestore', desc: 'Target URL, panel login, and Postman collection IDs live in the database per app.' },
+            { title: 'Invite by App ID', desc: 'Share your App ID so teammates can join the same workspace.' },
           ].map((item, idx) => (
             <div key={idx} style={{ display: 'flex', gap: 14 }}>
               <CheckCircle2 size={20} color="var(--success)" style={{ flexShrink: 0, marginTop: 2 }} />
@@ -108,158 +154,138 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Right side: Auth Form Panel */}
       <div style={{
-        width: 500,
+        width: 520,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'center',
-        padding: '40px 60px',
-        position: 'relative'
+        padding: '40px 48px',
+        overflowY: 'auto',
+        maxHeight: '100vh',
       }}>
-        <div style={{ maxWidth: 380, width: '100%', margin: '0 auto' }}>
-          <div style={{ marginBottom: 28 }}>
-            <h2 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>
-              {isRegister ? 'Create SaaS Account' : 'Welcome back'}
+        <div style={{ maxWidth: 400, width: '100%', margin: '0 auto' }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+            {[
+              { id: 'login', label: 'Sign In' },
+              { id: 'create', label: 'Create App' },
+              { id: 'join', label: 'Join App' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`btn ${mode === tab.id ? 'btn-primary' : 'btn-outline'}`}
+                style={{ flex: 1, fontSize: 12, padding: '8px 0' }}
+                onClick={() => { setMode(tab.id); setError(null); }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>
+              {mode === 'login' && 'Sign in to your app workspace'}
+              {mode === 'create' && 'Register a new application'}
+              {mode === 'join' && 'Join an existing application'}
             </h2>
             <p style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 6 }}>
-              {isRegister ? 'Start building your workspace for free.' : 'Sign in to access your testing environments.'}
+              {mode === 'login' && 'Use your App ID, email, and password.'}
+              {mode === 'create' && 'Creates a unique App ID and stores all config in Firestore.'}
+              {mode === 'join' && 'Enter the App ID shared by your team admin.'}
             </p>
           </div>
 
           {error && (
-            <div style={{ 
-              marginBottom: 18, fontSize: 12, padding: '10px 14px', borderRadius: 8, 
+            <div style={{
+              marginBottom: 16, fontSize: 12, padding: '10px 14px', borderRadius: 8,
               background: 'rgba(239, 68, 68, 0.12)', border: '1px solid rgba(239, 68, 68, 0.3)',
-              color: '#F87171', lineHeight: 1.5 
+              color: '#F87171', lineHeight: 1.5,
             }}>
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {isRegister && (
-              <>
-                <div className="form-group">
-                  <label className="form-label">Full Name</label>
-                  <div style={{ position: 'relative' }}>
-                    <User size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-muted)' }} />
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      style={{ paddingLeft: 34 }} 
-                      placeholder="e.g. John Doe"
-                      value={form.name}
-                      onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
+          {mode === 'login' && (
+            <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <Field label="Application ID *" icon={KeyRound} value={form.appId} onChange={v => setField('appId', v)} placeholder="APP-1719912345678-ABC123" />
+              <Field label="Email *" icon={Mail} type="email" value={form.email} onChange={v => setField('email', v)} placeholder="you@company.com" />
+              <Field label="Password *" icon={Lock} type="password" value={form.password} onChange={v => setField('password', v)} placeholder="••••••••" />
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 40, marginTop: 4 }} disabled={loading}>
+                {loading ? 'Signing in…' : 'Sign In'}
+              </button>
+            </form>
+          )}
 
-                <div className="form-group">
-                  <label className="form-label">Organization Name</label>
-                  <div style={{ position: 'relative' }}>
-                    <Building size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-muted)' }} />
-                    <input 
-                      type="text" 
-                      className="form-input" 
-                      style={{ paddingLeft: 34 }} 
-                      placeholder="e.g. Acme Corp"
-                      value={form.orgName}
-                      onChange={(e) => setForm(f => ({ ...f, orgName: e.target.value }))}
-                      required
-                    />
-                  </div>
-                </div>
-              </>
-            )}
+          {mode === 'create' && (
+            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <Field label="Your Name *" icon={User} value={form.name} onChange={v => setField('name', v)} placeholder="John Doe" />
+              <Field label="Your Email *" icon={Mail} type="email" value={form.email} onChange={v => setField('email', v)} placeholder="you@company.com" />
+              <Field label="Password *" icon={Lock} type="password" value={form.password} onChange={v => setField('password', v)} placeholder="••••••••" />
+              <div style={{ height: 1, background: 'var(--border-color)', margin: '4px 0' }} />
+              <Field label="Application Name *" icon={Building} value={form.appName} onChange={v => setField('appName', v)} placeholder="My Web App" />
+              <Field label="Target App URL *" icon={Globe} type="url" value={form.baseUrl} onChange={v => setField('baseUrl', v)} placeholder="https://app.example.com" />
+              <Field label="Panel Login Email *" icon={Mail} value={form.defaultUsername} onChange={v => setField('defaultUsername', v)} placeholder="For Playwright UI tests" />
+              <Field label="Panel Login Password *" icon={Lock} type="password" value={form.defaultPassword} onChange={v => setField('defaultPassword', v)} placeholder="Stored in Firestore" />
+              <Field label="Postman Collection ID" icon={FileCode} value={form.postmanCollectionId} onChange={v => setField('postmanCollectionId', v)} placeholder="Optional — for API runs" required={false} />
+              <Field label="Postman Environment ID" icon={FileCode} value={form.postmanEnvironmentId} onChange={v => setField('postmanEnvironmentId', v)} placeholder="Optional" required={false} />
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 40, marginTop: 4 }} disabled={loading}>
+                {loading ? 'Creating…' : 'Create App & Sign In'}
+              </button>
+            </form>
+          )}
 
-            <div className="form-group">
-              <label className="form-label">Work Email</label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-muted)' }} />
-                <input 
-                  type="email" 
-                  className="form-input" 
-                  style={{ paddingLeft: 34 }} 
-                  placeholder="name@company.com"
-                  value={form.email}
-                  onChange={(e) => setForm(f => ({ ...f, email: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                <label className="form-label" style={{ margin: 0 }}>Password</label>
-                {!isRegister && (
-                  <span style={{ fontSize: 11, color: 'var(--accent-blue)', cursor: 'pointer' }}>Forgot?</span>
-                )}
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Lock size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-muted)' }} />
-                <input 
-                  type="password" 
-                  className="form-input" 
-                  style={{ paddingLeft: 34 }} 
-                  placeholder="••••••••"
-                  value={form.password}
-                  onChange={(e) => setForm(f => ({ ...f, password: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-
-            <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 40, marginTop: 8 }} disabled={loading}>
-              {loading ? 'Authenticating...' : isRegister ? 'Create Workspace' : 'Sign In'}
-            </button>
-          </form>
-
-          {/* Toggle Screen Mode */}
-          <div style={{ textAlign: 'center', fontSize: 13, marginTop: 20 }}>
-            <span style={{ color: 'var(--text-muted)' }}>
-              {isRegister ? 'Already have an account? ' : "Don't have an account? "}
-            </span>
-            <span 
-              style={{ color: 'var(--accent-blue)', cursor: 'pointer', fontWeight: 600 }}
-              onClick={() => { setError(null); setIsRegister(!isRegister); }}
-            >
-              {isRegister ? 'Sign In' : 'Sign Up'}
-            </span>
-          </div>
+          {mode === 'join' && (
+            <form onSubmit={handleJoin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <Field label="Application ID *" icon={KeyRound} value={form.appId} onChange={v => setField('appId', v)} placeholder="APP-1719912345678-ABC123" />
+              <Field label="Your Name *" icon={User} value={form.name} onChange={v => setField('name', v)} placeholder="John Doe" />
+              <Field label="Your Email *" icon={Mail} type="email" value={form.email} onChange={v => setField('email', v)} placeholder="you@company.com" />
+              <Field label="Password *" icon={Lock} type="password" value={form.password} onChange={v => setField('password', v)} placeholder="••••••••" />
+              <button type="submit" className="btn btn-primary" style={{ width: '100%', height: 40, marginTop: 4 }} disabled={loading}>
+                {loading ? 'Joining…' : 'Join & Sign In'}
+              </button>
+            </form>
+          )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '24px 0', opacity: 0.5 }}>
             <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
-            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Or Evaluate Instance</div>
+            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5 }}>Demo</div>
             <div style={{ flex: 1, height: 1, background: 'var(--border-color)' }} />
           </div>
 
-          {/* Demo Bypass Panel */}
           <div style={{ background: 'var(--bg-card)', padding: 16, borderRadius: 12, border: '1px solid var(--border-color)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Zap size={12} color="var(--accent-yellow)" /> Fast-Track Demo
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Zap size={12} color="var(--accent-yellow)" /> Explore without setup
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button 
-                type="button" 
-                className="btn btn-outline" 
-                style={{ width: '100%', padding: '8px 0', fontSize: 12, justifyContent: 'center' }}
-                onClick={() => handleDemoLogin('QA Lead')}
-              >
-                Log In as QA Lead (Full Access)
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-outline" 
-                style={{ width: '100%', padding: '8px 0', fontSize: 12, justifyContent: 'center' }}
-                onClick={() => handleDemoLogin('Developer')}
-              >
-                Log In as Developer
-              </button>
-            </div>
+            <button
+              type="button"
+              className="btn btn-outline"
+              style={{ width: '100%', fontSize: 12 }}
+              onClick={() => { setError(null); loginDemo('QA Lead'); }}
+            >
+              Log In as QA Lead (Demo)
+            </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, icon: Icon, type = 'text', value, onChange, placeholder, required = true }) {
+  return (
+    <div className="form-group" style={{ margin: 0 }}>
+      <label className="form-label">{label}</label>
+      <div style={{ position: 'relative' }}>
+        <Icon size={14} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-muted)' }} />
+        <input
+          type={type}
+          className="form-input"
+          style={{ paddingLeft: 34 }}
+          placeholder={placeholder}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          required={required}
+        />
       </div>
     </div>
   );

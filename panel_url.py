@@ -1,16 +1,16 @@
-"""Resolve Shipmozo panel host from env or live browser session."""
+"""Resolve target webapp panel URL from env or live browser session."""
 
 from __future__ import annotations
 
-import os
 from urllib.parse import urlparse, urlunparse
 
 from playwright.async_api import Page
 
+from panel_env import panel_url as _panel_url_from_env
+
 DEFAULT_PANEL_HOSTS = (
     "https://panel.appiify.com",
     "https://panel.appify.com",
-    "https://panel.shipmozo.com",
 )
 
 RATE_CALCULATOR_PATHS = (
@@ -21,7 +21,7 @@ RATE_CALCULATOR_PATHS = (
 
 
 def default_panel_base() -> str:
-    env = os.getenv("SHIPMOZO_PANEL_URL", "").strip().rstrip("/")
+    env = _panel_url_from_env().rstrip("/")
     if env:
         return env
     return DEFAULT_PANEL_HOSTS[0]
@@ -30,7 +30,7 @@ def default_panel_base() -> str:
 def login_urls() -> list[str]:
     seen: set[str] = set()
     out: list[str] = []
-    for candidate in (os.getenv("SHIPMOZO_PANEL_URL", "").strip().rstrip("/"), *DEFAULT_PANEL_HOSTS):
+    for candidate in (_panel_url_from_env().rstrip("/"), *DEFAULT_PANEL_HOSTS):
         if candidate and candidate not in seen:
             seen.add(candidate)
             out.append(candidate)
@@ -39,7 +39,7 @@ def login_urls() -> list[str]:
 
 def panel_origin_from_url(url: str) -> str:
     parsed = urlparse(url or "")
-    if parsed.scheme and parsed.netloc and "panel." in parsed.netloc:
+    if parsed.scheme and parsed.netloc:
         return f"{parsed.scheme}://{parsed.netloc}".rstrip("/")
     return default_panel_base()
 

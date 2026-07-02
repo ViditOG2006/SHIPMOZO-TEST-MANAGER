@@ -19,7 +19,7 @@ export default function TeamManager() {
     {
       id: 'MEM-001',
       name: 'Vidit OG',
-      email: 'vidit@shipmozo.com',
+      email: 'lead@example.com',
       role: 'QA Lead',
       joinedAt: '2026-06-15T08:30:00Z',
     },

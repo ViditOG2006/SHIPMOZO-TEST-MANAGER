@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: shipmozo-aep
+    name: test-manager-aep
     runtime: static
     buildCommand: npm install && npm run build
     staticPublishPath: ./dist

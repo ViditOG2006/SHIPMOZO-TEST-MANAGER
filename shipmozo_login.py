@@ -13,6 +13,7 @@ from playwright.async_api import Page
 from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from playwright.async_api import async_playwright
 
+from panel_env import panel_email, panel_password
 from panel_ui_helpers import dismiss_blocking_overlays
 from panel_url import default_panel_base, login_urls
 from panel_e2e.e2e_log import e2e_log
@@ -43,17 +44,22 @@ SCREENSHOT_PATH = OUTPUT_DIR / "shipmozo-dashboard.png"
 
 
 def panel_credentials() -> tuple[str, str]:
-    """Resolve panel login — on Render require explicit env (no local dev defaults)."""
-    email = os.getenv("SHIPMOZO_EMAIL", "").strip()
-    password = os.getenv("SHIPMOZO_PASSWORD", "").strip()
+    """Resolve target app login from env (TARGET_APP_* or legacy SHIPMOZO_*)."""
+    email = panel_email()
+    password = panel_password()
     if _ON_RENDER:
         if not email or not password:
             raise RuntimeError(
-                "SHIPMOZO_EMAIL and SHIPMOZO_PASSWORD must be set in Render Environment "
-                "(Dashboard → Environment). Local .env is not used on Render."
+                "TARGET_APP_EMAIL and TARGET_APP_PASSWORD must be set in Render Environment "
+                "(legacy SHIPMOZO_EMAIL / SHIPMOZO_PASSWORD also accepted). Local .env is not used on Render."
             )
         return email, password
-    return email or "tech@shipmozo.com", password or "12345678"
+    if not email or not password:
+        raise RuntimeError(
+            "TARGET_APP_EMAIL and TARGET_APP_PASSWORD must be set in .env "
+            "(or legacy SHIPMOZO_EMAIL / SHIPMOZO_PASSWORD)."
+        )
+    return email, password
 
 
 HEADLESS = os.getenv("HEADLESS", "false").lower() in {"1", "true", "yes"}

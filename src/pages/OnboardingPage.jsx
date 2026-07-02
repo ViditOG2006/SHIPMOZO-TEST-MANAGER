@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { useAppStore, useAppConfigStore } from '../store';
-import { createDoc } from '../firebase/db';
+import { fetchOne, upsertDoc, COLLECTIONS } from '../firebase/db';
 import { Building, Users, ArrowRight, Zap, Globe, Plus, KeyRound } from 'lucide-react';
 
 export default function OnboardingPage() {
   const { user, setActiveAppId } = useAppStore();
-  const { addApplication } = useAppConfigStore();
+  const { addApp } = useAppConfigStore();
   const [mode, setMode] = useState(null); // null | 'create' | 'join'
-  const [form, setForm] = useState({ appName: '', appUrl: '', frontendTester: 'Playwright', backendTester: 'Postman Collection' });
+  const [form, setForm] = useState({
+    appName: '', appUrl: '', defaultUsername: '', defaultPassword: '',
+    postmanCollectionId: '', postmanEnvironmentId: '',
+    frontendTester: 'Playwright', backendTester: 'Postman Collection',
+  });
   const [joinCode, setJoinCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -19,33 +23,20 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      const appId = `APP-${Date.now()}`;
-      const appData = {
-        id: appId,
+      const appId = await addApp({
         name: form.appName.trim(),
-        url: form.appUrl.trim() || 'https://example.com',
+        baseUrl: form.appUrl.trim(),
         icon: '🚀',
+        description: `Workspace for ${form.appName.trim()}`,
         frontendTester: form.frontendTester,
         backendTester: form.backendTester,
-        ownerId: user?.uid || 'demo-uid',
-        ownerEmail: user?.email || 'demo@appiify.com',
-        createdAt: new Date().toISOString(),
-      };
-
-      await addApplication(appData);
-
-      // Also save workspace mapping for the user
-      await createDoc('workspaces', user?.uid || 'demo-uid', {
-        userId: user?.uid || 'demo-uid',
-        email: user?.email,
-        appIds: [appId],
-        activeAppId: appId,
-        orgName: form.appName.trim(),
-        createdAt: new Date().toISOString(),
+        postmanCollectionId: form.postmanCollectionId.trim(),
+        postmanEnvironmentId: form.postmanEnvironmentId.trim(),
+        defaultUsername: form.defaultUsername.trim(),
+        defaultPassword: form.defaultPassword,
       });
 
       setActiveAppId(appId);
-      // Mark onboarding complete
       localStorage.setItem('onboarded', 'true');
       window.location.href = '/';
     } catch (err) {
@@ -61,16 +52,23 @@ export default function OnboardingPage() {
     setError(null);
 
     try {
-      // For now, treat the join code as an appId and try to associate
-      await createDoc('workspaces', user?.uid || 'demo-uid', {
-        userId: user?.uid || 'demo-uid',
-        email: user?.email,
-        appIds: [joinCode.trim()],
-        activeAppId: joinCode.trim(),
-        joinedAt: new Date().toISOString(),
-      });
+      const joinId = joinCode.trim();
+      const app = await fetchOne(COLLECTIONS.APPLICATIONS, joinId);
+      if (!app) throw new Error('Application not found. Check the App ID.');
 
-      setActiveAppId(joinCode.trim());
+      const uid = user?.uid;
+      if (!uid || uid === 'demo-uid') throw new Error('Sign in with a real account to join a workspace.');
+
+      const workspace = await fetchOne(COLLECTIONS.WORKSPACES, uid);
+      const userDoc = await fetchOne('users', uid);
+      const appIds = [...new Set([...(workspace?.appIds || userDoc?.appIds || []), joinId])];
+      const memberIds = [...new Set([...(app.memberIds || []), uid])];
+
+      await upsertDoc(COLLECTIONS.WORKSPACES, uid, { appIds, activeAppId: joinId });
+      await upsertDoc('users', uid, { appIds, activeAppId: joinId });
+      await upsertDoc(COLLECTIONS.APPLICATIONS, joinId, { memberIds });
+
+      setActiveAppId(joinId);
       localStorage.setItem('onboarded', 'true');
       window.location.href = '/';
     } catch (err) {
